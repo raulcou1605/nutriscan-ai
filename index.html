@@ -263,22 +263,53 @@
 
         function closePaywall() { document.getElementById('paywallModal').classList.add('hidden'); }
 
+        // Función con compresión automática para evitar bloqueos por imágenes pesadas
         function handleImageSelect(event) {
             const file = event.target.files[0];
-            if (file) {
-                mimeType = file.type;
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    document.getElementById('imagePreview').src = e.target.result;
-                    selectedImageBase64 = e.target.result.split(',')[1];
+            if (!file) return;
+            
+            mimeType = file.type || "image/jpeg";
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 800;
+                    const MAX_HEIGHT = 800;
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > height) {
+                        if (width > MAX_WIDTH) {
+                            height *= MAX_WIDTH / width;
+                            width = MAX_WIDTH;
+                        }
+                    } else {
+                        if (height > MAX_HEIGHT) {
+                            width *= MAX_HEIGHT / height;
+                            height = MAX_HEIGHT;
+                        }
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                    document.getElementById('imagePreview').src = compressedDataUrl;
+                    selectedImageBase64 = compressedDataUrl.split(',')[1];
+
                     document.getElementById('uploadPlaceholder').classList.add('hidden');
                     document.getElementById('imagePreviewContainer').classList.remove('hidden');
                     const analyzeBtn = document.getElementById('analyzeBtn');
                     analyzeBtn.disabled = false;
                     analyzeBtn.className = 'w-full mt-4 bg-emerald-600 text-white font-bold py-3.5 px-4 rounded-2xl shadow-lg shadow-emerald-600/30 transition flex items-center justify-center gap-2';
                 }
-                reader.readAsDataURL(file);
+                img.src = e.target.result;
             }
+            reader.readAsDataURL(file);
         }
 
         function resetUpload() {
