@@ -190,23 +190,18 @@
             document.getElementById('resultsContainer').classList.add('hidden');
             document.getElementById('loadingBox').classList.remove('hidden');
 
-            const promptText = `Eres un nutriólogo experto. Analiza detalladamente la imagen proporcionada de este alimento, lata, envase o etiqueta. Identifica con precisión de qué producto se trata (por ejemplo, si es atún enlatado, sopa instantánea, café, etc.). 
-            Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin texto adicional ni formato markdown fuera del JSON) con esta estructura exacta:
+            const promptText = `Analiza esta imagen de un producto alimenticio. Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin texto adicional ni markdown) con esta estructura exacta:
             {
-              "category": "Categoría real del producto detectado (ej: Pescado en Conserva, Sopa Instantánea, Bebida)",
+              "category": "Categoría del producto",
               "categoryClass": "bg-emerald-100 text-emerald-800", 
-              "name": "Nombre comercial y presentación exacta del producto en la foto",
-              "subtitle": "Breve descripción de su perfil nutricional principal",
-              "score": 80,
+              "name": "Nombre exacto del producto",
+              "subtitle": "Breve descripción",
+              "score": 75,
               "scoreBg": "bg-emerald-500",
-              "seals": ["ALTO EN PROTEÍNA", "CONTIENE SODIO"],
-              "harmful": [
-                {"name": "Ingrediente o componente a vigilar", "damage": "Explicación breve de su efecto en la salud si se abusa"}
-              ],
-              "benefits": [
-                {"text": "Beneficio nutricional principal del producto"}
-              ],
-              "summary": "Resumen ejecutivo claro y directo sobre este producto específico para lectura por voz."
+              "seals": ["EXCESO SODIO"],
+              "harmful": [{"name": "Ingrediente", "damage": "Efecto en salud"}],
+              "benefits": [{"text": "Beneficio nutricional"}],
+              "summary": "Resumen para voz."
             }`;
 
             try {
@@ -224,6 +219,11 @@
                 });
 
                 const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error.message || "Error de la API de Gemini");
+                }
+
                 const textResponse = data.candidates[0].content.parts[0].text;
                 const cleanJson = textResponse.replace(/```json/g, '').replace(/```/g, '').trim();
                 currentAnalysisData = JSON.parse(cleanJson);
@@ -240,7 +240,7 @@
 
             } catch (error) {
                 document.getElementById('loadingBox').classList.add('hidden');
-                alert("Error al analizar con la IA. Asegúrate de que la imagen sea clara y la API Key sea correcta.");
+                alert("Error detallado de IA: " + error.message);
                 console.error(error);
             }
         }
