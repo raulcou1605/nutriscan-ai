@@ -97,4 +97,265 @@
                     <p id="productSubtitle" class="text-xs text-slate-500 mt-0.5">Evaluación general</p>
                 </div>
                 <div class="text-center relative">
-                    <div id="scoreCircle" class="w-16 h-16 rounded-2xl flex items-center justify-center text-white
+                    <div id="scoreCircle" class="w-16 h-16 rounded-2xl flex items-center justify-center text-white font-extrabold text-xl shadow-lg">
+                        <span id="healthScore">0</span>
+                    </div>
+                    <span class="text-[10px] font-bold text-slate-400 uppercase block mt-1">Score / 100</span>
+                </div>
+            </div>
+
+            <button onclick="speakSummary()" class="w-full bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold py-3 px-4 rounded-2xl border border-emerald-200 flex items-center justify-center gap-2 transition active:scale-95 shadow-sm">
+                <i class="fa-solid fa-volume-high text-emerald-600"></i> Escuchar Resumen Nutricional
+            </button>
+
+            <div id="warningSeals" class="grid grid-cols-2 gap-2"></div>
+
+            <div class="glass-card rounded-3xl p-5 border border-slate-100 shadow-xl space-y-3">
+                <h3 class="font-extrabold text-slate-800 flex items-center gap-2 text-base">
+                    <i class="fa-solid fa-triangle-exclamation text-rose-500"></i> Ingredientes Nocivos
+                </h3>
+                <div id="harmfulList" class="space-y-3"></div>
+            </div>
+
+            <div class="glass-card rounded-3xl p-5 border border-slate-100 shadow-xl space-y-3">
+                <h3 class="font-extrabold text-slate-800 flex items-center gap-2 text-base">
+                    <i class="fa-solid fa-heart-pulse text-emerald-500"></i> Beneficios Nutricionales
+                </h3>
+                <div id="benefitsList" class="space-y-2"></div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Modal de Pago / Suscripción -->
+    <div id="paywallModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl text-center space-y-4 relative">
+            <button onclick="closePaywall()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            <div class="w-16 h-16 bg-gradient-to-tr from-amber-400 to-amber-200 text-slate-900 rounded-3xl mx-auto flex items-center justify-center text-3xl shadow-lg shadow-amber-400/30">
+                <i class="fa-solid fa-crown"></i>
+            </div>
+            <div>
+                <h3 class="font-extrabold text-xl text-slate-900">¡Límite diario alcanzado!</h3>
+                <p class="text-xs text-slate-500 mt-1">Has usado tus 5 escaneos gratuitos de hoy. Pásate a PRO para continuar.</p>
+            </div>
+            <div class="py-2"><span class="text-3xl font-extrabold text-slate-900">$2.99 USD</span><span class="text-xs text-slate-400">/ mes</span></div>
+            <button onclick="subscribePRO()" class="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-extrabold py-3.5 px-4 rounded-2xl shadow-lg shadow-emerald-500/30 transition">Obtener NutriScan PRO</button>
+        </div>
+    </div>
+
+    <!-- Modal Historial -->
+    <div id="historyModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl max-h-[80vh] flex flex-col shadow-2xl">
+            <div class="p-5 border-b border-slate-100 flex justify-between items-center">
+                <h3 class="font-extrabold text-lg text-slate-800">Historial de Escaneos</h3>
+                <button onclick="closeHistory()" class="w-8 h-8 bg-slate-100 text-slate-600 rounded-full flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div id="historyList" class="p-5 overflow-y-auto space-y-3 flex-1"></div>
+        </div>
+    </div>
+
+    <script>
+        const MAX_FREE_SCANS = 5;
+        const GEMINI_API_KEY = "AQ.Ab8RN6JRW9fCzQ6yQVdTLe8gqgz-Jdhu0gdd7F1iGrgTKl4iGg";
+        let currentAnalysisData = null;
+        let selectedImageBase64 = null;
+        let mimeType = "image/jpeg";
+
+        function getTodayKey() { return `scans_${new Date().toISOString().slice(0, 10)}`; }
+        function getScansUsedToday() { return parseInt(localStorage.getItem(getTodayKey()) || '0', 10); }
+        function isUserPro() { return localStorage.getItem('nutriscan_is_pro') === 'true'; }
+
+        function updateScanUI() {
+            if (isUserPro()) {
+                document.getElementById('scanCounterText').innerText = 'PRO Ilimitado';
+                document.getElementById('userStatusBadge').innerText = 'PRO Activo';
+                document.getElementById('userStatusBadge').className = 'bg-amber-400 text-slate-900 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-sm';
+            } else {
+                const remaining = Math.max(0, MAX_FREE_SCANS - getScansUsedToday());
+                document.getElementById('scanCounterText').innerText = `${remaining} restantes`;
+            }
+        }
+
+        function checkScanLimitAndAnalyze() {
+            if (isUserPro() || getScansUsedToday() < MAX_FREE_SCANS) {
+                callGeminiAPI();
+            } else {
+                document.getElementById('paywallModal').classList.remove('hidden');
+            }
+        }
+
+        async function callGeminiAPI() {
+            if (!selectedImageBase64) return alert("Por favor selecciona o toma una foto primero.");
+            
+            document.getElementById('resultsContainer').classList.add('hidden');
+            document.getElementById('loadingBox').classList.remove('hidden');
+
+            const promptText = `Eres un nutriólogo experto. Analiza detalladamente la imagen proporcionada de este alimento, lata, envase o etiqueta. Identifica con precisión de qué producto se trata (por ejemplo, si es atún enlatado, sopa instantánea, café, etc.). 
+            Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin texto adicional ni formato markdown fuera del JSON) con esta estructura exacta:
+            {
+              "category": "Categoría real del producto detectado (ej: Pescado en Conserva, Sopa Instantánea, Bebida)",
+              "categoryClass": "bg-emerald-100 text-emerald-800", 
+              "name": "Nombre comercial y presentación exacta del producto en la foto",
+              "subtitle": "Breve descripción de su perfil nutricional principal",
+              "score": 80,
+              "scoreBg": "bg-emerald-500",
+              "seals": ["ALTO EN PROTEÍNA", "CONTIENE SODIO"],
+              "harmful": [
+                {"name": "Ingrediente o componente a vigilar", "damage": "Explicación breve de su efecto en la salud si se abusa"}
+              ],
+              "benefits": [
+                {"text": "Beneficio nutricional principal del producto"}
+              ],
+              "summary": "Resumen ejecutivo claro y directo sobre este producto específico para lectura por voz."
+            }`;
+
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [
+                                { text: promptText },
+                                { inlineData: { mimeType: mimeType, data: selectedImageBase64 } }
+                            ]
+                        }]
+                    })
+                });
+
+                const data = await response.json();
+                const textResponse = data.candidates[0].content.parts[0].text;
+                const cleanJson = textResponse.replace(/```json/g, '').replace(/```/g, '').trim();
+                currentAnalysisData = JSON.parse(cleanJson);
+
+                document.getElementById('loadingBox').classList.add('hidden');
+
+                if (!isUserPro()) {
+                    localStorage.setItem(getTodayKey(), getScansUsedToday() + 1);
+                    updateScanUI();
+                }
+
+                renderResults(currentAnalysisData);
+                saveToHistory(currentAnalysisData);
+
+            } catch (error) {
+                document.getElementById('loadingBox').classList.add('hidden');
+                alert("Error al analizar con la IA. Asegúrate de que la imagen sea clara y la API Key sea correcta.");
+                console.error(error);
+            }
+        }
+
+        function subscribePRO() {
+            window.location.href = "https://buy.stripe.com/test_14A6oJ6WKfgpbgQdcG7ss00";
+        }
+
+        function closePaywall() { document.getElementById('paywallModal').classList.add('hidden'); }
+
+        function handleImageSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                mimeType = file.type;
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('imagePreview').src = e.target.result;
+                    selectedImageBase64 = e.target.result.split(',')[1];
+                    document.getElementById('uploadPlaceholder').classList.add('hidden');
+                    document.getElementById('imagePreviewContainer').classList.remove('hidden');
+                    const analyzeBtn = document.getElementById('analyzeBtn');
+                    analyzeBtn.disabled = false;
+                    analyzeBtn.className = 'w-full mt-4 bg-emerald-600 text-white font-bold py-3.5 px-4 rounded-2xl shadow-lg shadow-emerald-600/30 transition flex items-center justify-center gap-2';
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function resetUpload() {
+            selectedImageBase64 = null;
+            document.getElementById('fileInput').value = '';
+            document.getElementById('imagePreviewContainer').classList.add('hidden');
+            document.getElementById('uploadPlaceholder').classList.remove('hidden');
+            const analyzeBtn = document.getElementById('analyzeBtn');
+            analyzeBtn.disabled = true;
+            analyzeBtn.className = 'w-full mt-4 bg-slate-200 text-slate-400 font-bold py-3.5 px-4 rounded-2xl shadow-sm transition flex items-center justify-center gap-2 cursor-not-allowed';
+        }
+
+        function renderResults(data) {
+            document.getElementById('productCategory').innerText = data.category;
+            document.getElementById('productCategory').className = `text-xs font-bold px-2.5 py-1 rounded-full uppercase ${data.categoryClass}`;
+            document.getElementById('productName').innerText = data.name;
+            document.getElementById('productSubtitle').innerText = data.subtitle;
+            document.getElementById('healthScore').innerText = data.score;
+            document.getElementById('scoreCircle').className = `w-16 h-16 rounded-2xl flex items-center justify-center text-white font-extrabold text-xl shadow-lg ${data.scoreBg}`;
+
+            const sealsContainer = document.getElementById('warningSeals');
+            sealsContainer.innerHTML = '';
+            data.seals.forEach(seal => {
+                sealsContainer.innerHTML += `<div class="bg-rose-50 border border-rose-200 text-rose-700 text-[10px] font-extrabold p-2 rounded-xl text-center uppercase tracking-wider flex items-center justify-center gap-1"><i class="fa-solid fa-octagon-exclamation"></i> ${seal}</div>`;
+            });
+
+            const harmfulList = document.getElementById('harmfulList');
+            harmfulList.innerHTML = data.harmful.length === 0 ? `<p class="text-xs text-emerald-600 font-medium"><i class="fa-solid fa-circle-check"></i> Sin aditivos dañinos.</p>` : '';
+            data.harmful.forEach(item => {
+                harmfulList.innerHTML += `<div class="bg-rose-50/60 border border-rose-100 p-3.5 rounded-2xl"><h4 class="font-bold text-slate-800 text-sm">${item.name}</h4><p class="text-xs text-slate-600 mt-1 leading-relaxed">${item.damage}</p></div>`;
+            });
+
+            const benefitsList = document.getElementById('benefitsList');
+            benefitsList.innerHTML = '';
+            data.benefits.forEach(ben => {
+                benefitsList.innerHTML += `<div class="bg-emerald-50/60 border border-emerald-100 p-3.5 rounded-2xl flex items-start gap-2.5"><i class="fa-solid fa-circle-check text-emerald-600 mt-0.5"></i><p class="text-xs text-slate-700 leading-relaxed">${ben.text}</p></div>`;
+            });
+
+            document.getElementById('resultsContainer').classList.remove('hidden');
+            document.getElementById('resultsContainer').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function speakSummary() {
+            if ('speechSynthesis' in window && currentAnalysisData) {
+                window.speechSynthesis.cancel();
+                let utterance = new SpeechSynthesisUtterance(currentAnalysisData.summary);
+                utterance.lang = 'es-MX';
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        function saveToHistory(item) {
+            let history = JSON.parse(localStorage.getItem('nutriscan_history') || '[]');
+            history.unshift({ ...item, date: new Date().toLocaleDateString() });
+            if (history.length > 10) history.pop();
+            localStorage.setItem('nutriscan_history', JSON.stringify(history));
+        }
+
+        function openHistory() {
+            const historyList = document.getElementById('historyList');
+            let history = JSON.parse(localStorage.getItem('nutriscan_history') || '[]');
+            historyList.innerHTML = history.length === 0 ? `<p class="text-center text-xs text-slate-400 py-6">Sin análisis guardados.</p>` : '';
+            history.forEach(h => {
+                historyList.innerHTML += `<div class="bg-slate-50 border border-slate-100 p-3.5 rounded-2xl flex items-center justify-between"><div><span class="text-[10px] font-bold text-slate-400">${h.date}</span><h4 class="font-bold text-sm text-slate-800">${h.name}</h4></div><span class="font-extrabold text-sm px-2.5 py-1 rounded-xl text-white ${h.scoreBg}">${h.score}</span></div>`;
+            });
+            document.getElementById('historyModal').classList.remove('hidden');
+        }
+
+        function closeHistory() { document.getElementById('historyModal').classList.add('hidden'); }
+
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            document.getElementById('installBtn').classList.remove('hidden');
+        });
+
+        function installPWA() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then(() => { deferredPrompt = null; });
+            }
+        }
+
+        updateScanUI();
+
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').catch(() => {});
+        }
+    </script>
+</body>
+</html>
