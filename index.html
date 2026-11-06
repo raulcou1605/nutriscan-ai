@@ -204,31 +204,47 @@
               "summary": "Resumen para voz."
             }`;
 
-            try {
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${GEMINI_API_KEY}`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        contents: [{
-                            parts: [
-                                { text: promptText },
-                                { inlineData: { mimeType: mimeType, data: selectedImageBase64 } }
-                            ]
-                        }]
-                    })
-                });
+            // Lista de respaldo de modelos para evitar saturación
+            const models = ["gemini-1.5-flash", "gemini-2.0-flash-exp", "gemini-1.5-pro"];
+            let data = null;
+            let success = false;
 
-                const data = await response.json();
-                
-                if (data.error) {
-                    throw new Error(data.error.message || "Error de la API de Gemini");
+            for (let model of models) {
+                try {
+                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            contents: [{
+                                parts: [
+                                    { text: promptText },
+                                    { inlineData: { mimeType: mimeType, data: selectedImageBase64 } }
+                                ]
+                            }]
+                        })
+                    });
+
+                    data = await response.json();
+                    if (!data.error) {
+                        success = true;
+                        break;
+                    }
+                } catch (e) {
+                    console.warn(`Fallo con el modelo ${model}, intentando siguiente...`);
                 }
+            }
 
+            document.getElementById('loadingBox').classList.add('hidden');
+
+            if (!success || !data || data.error) {
+                alert("La IA está experimentando alta demanda en este momento. Por favor, intenta de nuevo en unos segundos.");
+                return;
+            }
+
+            try {
                 const textResponse = data.candidates[0].content.parts[0].text;
                 const cleanJson = textResponse.replace(/```json/g, '').replace(/```/g, '').trim();
                 currentAnalysisData = JSON.parse(cleanJson);
-
-                document.getElementById('loadingBox').classList.add('hidden');
 
                 if (!isUserPro()) {
                     localStorage.setItem(getTodayKey(), getScansUsedToday() + 1);
@@ -237,11 +253,9 @@
 
                 renderResults(currentAnalysisData);
                 saveToHistory(currentAnalysisData);
-
-            } catch (error) {
-                document.getElementById('loadingBox').classList.add('hidden');
-                alert("Error detallado de IA: " + error.message);
-                console.error(error);
+            } catch (err) {
+                alert("Error al procesar la respuesta de la IA.");
+                console.error(err);
             }
         }
 
