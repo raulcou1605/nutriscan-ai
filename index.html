@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>NutriScan AI - Escáner Nutricional Inteligente</title>
-    <!-- Configuración para PWA y Pantalla Completa en Móviles -->
     <meta name="theme-color" content="#10b981">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -32,7 +31,7 @@
         <div class="absolute -right-10 -top-10 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
         <div class="flex justify-between items-center relative z-10">
             <div>
-                <span class="bg-white/20 text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wider backdrop-blur-md">IA Avanzada</span>
+                <span id="userStatusBadge" class="bg-white/20 text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wider backdrop-blur-md">Plan Gratuito</span>
                 <h1 class="text-3xl font-extrabold mt-1 tracking-tight">NutriScan <span class="text-emerald-200">AI</span></h1>
             </div>
             <div class="flex gap-2">
@@ -44,7 +43,12 @@
                 </button>
             </div>
         </div>
-        <p class="text-emerald-100 text-sm mt-3 relative z-10">Fotografía cualquier alimento o producto para revelar sus riesgos ocultos y beneficios.</p>
+        
+        <!-- Contador de Escaneos -->
+        <div class="mt-4 bg-white/10 backdrop-blur-md rounded-2xl p-3 flex justify-between items-center text-xs">
+            <span class="text-emerald-100 font-medium"><i class="fa-solid fa-bolt text-amber-300"></i> Escaneos de hoy:</span>
+            <span id="scanCounterText" class="font-bold bg-white text-emerald-800 px-2.5 py-0.5 rounded-full">5 restantes</span>
+        </div>
     </header>
 
     <!-- Main Container -->
@@ -58,9 +62,8 @@
                         <i class="fa-solid fa-camera"></i>
                     </div>
                     <h3 class="font-bold text-slate-700 text-base">Toma una foto o sube imagen</h3>
-                    <p class="text-xs text-slate-400 mt-1">Soporta etiquetas de ingredientes, empaques o alimentos naturales</p>
+                    <p class="text-xs text-slate-400 mt-1">Soporta etiquetas de ingredientes, empaques o alimentos</p>
                 </div>
-                <!-- Vista previa de imagen seleccionada -->
                 <div id="imagePreviewContainer" class="hidden w-full relative">
                     <img id="imagePreview" src="" alt="Preview" class="w-full h-52 object-cover rounded-xl shadow-inner">
                     <button onclick="event.stopPropagation(); resetUpload();" class="absolute top-2 right-2 bg-slate-900/70 text-white w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-md">
@@ -70,354 +73,17 @@
                 <input type="file" id="fileInput" accept="image/*" capture="environment" class="hidden" onchange="handleImageSelect(event)">
             </div>
 
-            <!-- Botones de Acción Rápida (Presets de prueba) -->
+            <!-- Botones de Ejemplos -->
             <div class="mt-4">
-                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-2">O prueba con ejemplos rápidos:</span>
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-2">Prueba con ejemplos rápidos:</span>
                 <div class="grid grid-cols-3 gap-2">
-                    <button onclick="loadPreset('refresco')" class="bg-slate-100 hover:bg-emerald-100 text-slate-700 text-xs font-semibold py-2 px-2 rounded-xl transition text-center border border-slate-200">
-                        🥤 Refresco
-                    </button>
-                    <button onclick="loadPreset('galletas')" class="bg-slate-100 hover:bg-emerald-100 text-slate-700 text-xs font-semibold py-2 px-2 rounded-xl transition text-center border border-slate-200">
-                        🍪 Galletas
-                    </button>
-                    <button onclick="loadPreset('ensalada')" class="bg-slate-100 hover:bg-emerald-100 text-slate-700 text-xs font-semibold py-2 px-2 rounded-xl transition text-center border border-slate-200">
-                        🥗 Ensalada
-                    </button>
+                    <button onclick="loadPreset('refresco')" class="bg-slate-100 hover:bg-emerald-100 text-slate-700 text-xs font-semibold py-2 px-2 rounded-xl transition text-center border border-slate-200">🥤 Refresco</button>
+                    <button onclick="loadPreset('galletas')" class="bg-slate-100 hover:bg-emerald-100 text-slate-700 text-xs font-semibold py-2 px-2 rounded-xl transition text-center border border-slate-200">🍪 Galletas</button>
+                    <button onclick="loadPreset('ensalada')" class="bg-slate-100 hover:bg-emerald-100 text-slate-700 text-xs font-semibold py-2 px-2 rounded-xl transition text-center border border-slate-200">🥗 Ensalada</button>
                 </div>
             </div>
 
-            <button id="analyzeBtn" onclick="analyzeProduct()" disabled class="w-full mt-4 bg-slate-200 text-slate-400 font-bold py-3.5 px-4 rounded-2xl shadow-sm transition flex items-center justify-center gap-2 cursor-not-allowed">
+            <button id="analyzeBtn" onclick="checkScanLimitAndAnalyze()" disabled class="w-full mt-4 bg-slate-200 text-slate-400 font-bold py-3.5 px-4 rounded-2xl shadow-sm transition flex items-center justify-center gap-2 cursor-not-allowed">
                 <i class="fa-solid fa-wand-magic-sparkles"></i> Analizar con IA
             </button>
         </div>
-
-        <!-- Loader de Análisis -->
-        <div id="loadingBox" class="hidden glass-card rounded-3xl p-8 text-center border border-slate-100 shadow-xl space-y-4">
-            <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full mx-auto flex items-center justify-center text-2xl pulse-ring">
-                <i class="fa-solid fa-brain"></i>
-            </div>
-            <div>
-                <h3 class="font-bold text-lg text-slate-800">Analizando producto...</h3>
-                <p class="text-xs text-slate-500 mt-1">Inspeccionando ingredientes, aditivos y perfil metabólico</p>
-            </div>
-            <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                <div class="bg-emerald-500 h-full w-2/3 animate-pulse rounded-full"></div>
-            </div>
-        </div>
-
-        <!-- Resultados del Análisis -->
-        <div id="resultsContainer" class="hidden space-y-5">
-            
-            <!-- Resumen de Puntuación -->
-            <div class="glass-card rounded-3xl p-5 border border-slate-100 shadow-xl flex items-center justify-between">
-                <div>
-                    <span id="productCategory" class="text-xs font-bold px-2.5 py-1 rounded-full uppercase">Ultraprocesado</span>
-                    <h2 id="productName" class="text-xl font-extrabold text-slate-900 mt-1">Nombre del Producto</h2>
-                    <p id="productSubtitle" class="text-xs text-slate-500 mt-0.5">Evaluación general de salud</p>
-                </div>
-                <div class="text-center relative">
-                    <div id="scoreCircle" class="w-16 h-16 rounded-2xl flex items-center justify-center text-white font-extrabold text-xl shadow-lg">
-                        <span id="healthScore">0</span>
-                    </div>
-                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mt-1">Score / 100</span>
-                </div>
-            </div>
-
-            <!-- Botón de Audio / TTS -->
-            <button onclick="speakSummary()" class="w-full bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold py-3 px-4 rounded-2xl border border-emerald-200 flex items-center justify-center gap-2 transition active:scale-95 shadow-sm">
-                <i class="fa-solid fa-volume-high text-emerald-600"></i> Escuchar Resumen Nutricional
-            </button>
-
-            <!-- Octágonos de Advertencia / Sellos -->
-            <div id="warningSeals" class="grid grid-cols-2 gap-2">
-                <!-- Se inyectan dinámicamente -->
-            </div>
-
-            <!-- Ingredientes Dañinos -->
-            <div class="glass-card rounded-3xl p-5 border border-slate-100 shadow-xl space-y-3">
-                <h3 class="font-extrabold text-slate-800 flex items-center gap-2 text-base">
-                    <i class="fa-solid fa-triangle-exclamation text-rose-500"></i> Ingredientes Nocivos Detectados
-                </h3>
-                <div id="harmfulList" class="space-y-3">
-                    <!-- Se inyectan dinámicamente -->
-                </div>
-            </div>
-
-            <!-- Beneficios para la Salud -->
-            <div class="glass-card rounded-3xl p-5 border border-slate-100 shadow-xl space-y-3">
-                <h3 class="font-extrabold text-slate-800 flex items-center gap-2 text-base">
-                    <i class="fa-solid fa-heart-pulse text-emerald-500"></i> Beneficios Nutricionales
-                </h3>
-                <div id="benefitsList" class="space-y-2">
-                    <!-- Se inyectan dinámicamente -->
-                </div>
-            </div>
-
-        </div>
-
-    </main>
-
-    <!-- Modal de Historial -->
-    <div id="historyModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
-        <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl max-h-[80vh] flex flex-col shadow-2xl animate-in slide-in-from-bottom duration-200">
-            <div class="p-5 border-b border-slate-100 flex justify-between items-center">
-                <h3 class="font-extrabold text-lg text-slate-800">Historial de Escaneos</h3>
-                <button onclick="closeHistory()" class="w-8 h-8 bg-slate-100 text-slate-600 rounded-full flex items-center justify-center hover:bg-slate-200 transition">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
-            <div id="historyList" class="p-5 overflow-y-auto space-y-3 flex-1">
-                <!-- Se llena con localStorage -->
-            </div>
-        </div>
-    </div>
-
-    <!-- Script de Lógica e Inteligencia PWA -->
-    <script>
-        let currentAnalysisData = null;
-        let selectedImageData = null;
-
-        // Base de Datos de Ejemplo / Simulación Inteligente
-        const mockDatabase = {
-            refresco: {
-                category: "Bebida Ultraprocesada",
-                categoryClass: "bg-rose-100 text-rose-700",
-                name: "Refresco de Cola (600ml)",
-                subtitle: "Alto contenido de azúcares libres y aditivos",
-                score: 18,
-                scoreBg: "bg-rose-500",
-                seals: ["EXCESO AZÚCARES", "CONTIENE CAFEÍNA", "NO RECOMENDADO EN NIÑOS"],
-                harmful: [
-                    { name: "Jarabe de Maíz de Alta Fructosa", damage: "Provoca acumulación rápida de grasa visceral, resistencia a la insulina y sobrecarga metabólica en el hígado." },
-                    { name: "Ácido Fosfórico", damage: "Interfiere con la absorción de calcio en los huesos, debilitando la densidad ósea a largo plazo." },
-                    { name: "Colorante Caramel IV", damage: "Contiene subproductos químicos (4-MEI) asociados con riesgos toxicológicos en consumo crónico." }
-                ],
-                benefits: [
-                    { text: "Aporte rápido de energía transitoria por glucosa simple." },
-                    { text: "Efecto estimulante momentáneo por contenido de cafeína." }
-                ],
-                summary: "Este producto está catalogado como bebida ultraprocesada con un puntaje de 18 sobre 100. Contiene exceso de azúcares y ácido fosfórico que dañan tu metabolismo y salud ósea."
-            },
-            galletas: {
-                category: "Galletas Rellenas",
-                categoryClass: "bg-amber-100 text-amber-800",
-                name: "Galletas de Chocolate Rellenas",
-                subtitle: "Grasas vegetales hidrogenadas y azúcares",
-                score: 28,
-                scoreBg: "bg-amber-500",
-                seals: ["EXCESO CALORÍAS", "EXCESO GRASAS SATURADAS", "EXCESO AZÚCARES"],
-                harmful: [
-                    { name: "Grasas Vegetales Hidrogenadas", damage: "Elevan el colesterol LDL (malo) y reducen el HDL (bueno), aumentando el riesgo cardiovascular." },
-                    { name: "Harina Refinada Blanqueada", damage: "Genera picos glucémicos agudos seguidos de fatiga y almacenamiento acelerado de tejido adiposo." },
-                    { name: "Saborizantes Artificiales", damage: "Pueden desencadenar respuestas inflamatorias leves en personas con sensibilidad digestiva." }
-                ],
-                benefits: [
-                    { text: "Aporte calórico inmediato para actividades físicas intensas de corto plazo." }
-                ],
-                summary: "Galletas rellenas con alto contenido de grasas trans y harinas refinadas. Puntaje de salud de 28 sobre 100."
-            },
-            ensalada: {
-                category: "Alimento Natural",
-                categoryClass: "bg-emerald-100 text-emerald-800",
-                name: "Ensalada Fresca de Quinoa y Aguacate",
-                subtitle: "Alto valor nutricional y fibra natural",
-                score: 94,
-                scoreBg: "bg-emerald-500",
-                seals: ["PRODUCTO NATURAL", "ALTO EN FIBRA", "SIN AZÚCARES AÑADIDOS"],
-                harmful: [],
-                benefits: [
-                    { text: "Ácidos grasos monoinsaturados del aguacate que protegen la salud cardiovascular." },
-                    { text: "Proteína vegetal de alta calidad y aminoácidos esenciales gracias a la quinoa." },
-                    { text: "Fibra soluble e insoluble que optimiza la microbiota y la salud intestinal." }
-                ],
-                summary: "Excelente opción nutricional con puntaje de 94 sobre 100. Rica en antioxidantes, grasas saludables y fibra sin aditivos químicos."
-            }
-        };
-
-        function handleImageSelect(event) {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    selectedImageData = e.target.result;
-                    document.getElementById('imagePreview').src = selectedImageData;
-                    document.getElementById('uploadPlaceholder').classList.add('hidden');
-                    document.getElementById('imagePreviewContainer').classList.remove('hidden');
-                    
-                    const analyzeBtn = document.getElementById('analyzeBtn');
-                    analyzeBtn.disabled = false;
-                    analyzeBtn.classList.remove('bg-slate-200', 'text-slate-400', 'cursor-not-allowed');
-                    analyzeBtn.classList.add('bg-emerald-600', 'text-white', 'shadow-lg', 'shadow-emerald-600/30');
-                }
-                reader.readAsDataURL(file);
-            }
-        }
-
-        function resetUpload() {
-            selectedImageData = null;
-            document.getElementById('fileInput').value = '';
-            document.getElementById('imagePreviewContainer').classList.add('hidden');
-            document.getElementById('uploadPlaceholder').classList.remove('hidden');
-            
-            const analyzeBtn = document.getElementById('analyzeBtn');
-            analyzeBtn.disabled = true;
-            analyzeBtn.classList.add('bg-slate-200', 'text-slate-400', 'cursor-not-allowed');
-            analyzeBtn.classList.remove('bg-emerald-600', 'text-white', 'shadow-lg', 'shadow-emerald-600/30');
-        }
-
-        function loadPreset(type) {
-            currentAnalysisData = mockDatabase[type];
-            selectedImageData = type === 'refresco' ? 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=500' :
-                              type === 'galletas' ? 'https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=500' :
-                              'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=500';
-            
-            document.getElementById('imagePreview').src = selectedImageData;
-            document.getElementById('uploadPlaceholder').classList.add('hidden');
-            document.getElementById('imagePreviewContainer').classList.remove('hidden');
-            
-            const analyzeBtn = document.getElementById('analyzeBtn');
-            analyzeBtn.disabled = false;
-            analyzeBtn.classList.remove('bg-slate-200', 'text-slate-400', 'cursor-not-allowed');
-            analyzeBtn.classList.add('bg-emerald-600', 'text-white', 'shadow-lg', 'shadow-emerald-600/30');
-            
-            analyzeProduct();
-        }
-
-        function analyzeProduct() {
-            document.getElementById('resultsContainer').classList.add('hidden');
-            document.getElementById('loadingBox').classList.remove('hidden');
-
-            setTimeout(() => {
-                document.getElementById('loadingBox').classList.add('hidden');
-                
-                // Si no se usó preset, usar por defecto el refresco o análisis simulado
-                if (!currentAnalysisData) {
-                    currentAnalysisData = mockDatabase['refresco'];
-                }
-
-                renderResults(currentAnalysisData);
-                saveToHistory(currentAnalysisData);
-            }, 1200);
-        }
-
-        function renderResults(data) {
-            document.getElementById('productCategory').innerText = data.category;
-            document.getElementById('productCategory').className = `text-xs font-bold px-2.5 py-1 rounded-full uppercase ${data.categoryClass}`;
-            document.getElementById('productName').innerText = data.name;
-            document.getElementById('productSubtitle').innerText = data.subtitle;
-            document.getElementById('healthScore').innerText = data.score;
-            document.getElementById('scoreCircle').className = `w-16 h-16 rounded-2xl flex items-center justify-center text-white font-extrabold text-xl shadow-lg ${data.scoreBg}`;
-
-            // Sellos
-            const sealsContainer = document.getElementById('warningSeals');
-            sealsContainer.innerHTML = '';
-            data.seals.forEach(seal => {
-                sealsContainer.innerHTML += `
-                    <div class="bg-rose-50 border border-rose-200 text-rose-700 text-[10px] font-extrabold p-2 rounded-xl text-center uppercase tracking-wider flex items-center justify-center gap-1">
-                        <i class="fa-solid fa-octagon-exclamation"></i> ${seal}
-                    </div>
-                `;
-            });
-
-            // Dañinos
-            const harmfulList = document.getElementById('harmfulList');
-            harmfulList.innerHTML = '';
-            if (data.harmful.length === 0) {
-                harmfulList.innerHTML = `<p class="text-xs text-emerald-600 font-medium"><i class="fa-solid fa-circle-check"></i> No se detectaron ingredientes ultraprocesados ni aditivos dañinos.</p>`;
-            } else {
-                data.harmful.forEach(item => {
-                    harmfulList.innerHTML += `
-                        <div class="bg-rose-50/60 border border-rose-100 p-3.5 rounded-2xl">
-                            <h4 class="font-bold text-slate-800 text-sm">${item.name}</h4>
-                            <p class="text-xs text-slate-600 mt-1 leading-relaxed">${item.damage}</p>
-                        </div>
-                    `;
-                });
-            }
-
-            // Beneficios
-            const benefitsList = document.getElementById('benefitsList');
-            benefitsList.innerHTML = '';
-            data.benefits.forEach(ben => {
-                benefitsList.innerHTML += `
-                    <div class="bg-emerald-50/60 border border-emerald-100 p-3.5 rounded-2xl flex items-start gap-2.5">
-                        <i class="fa-solid fa-circle-check text-emerald-600 mt-0.5"></i>
-                        <p class="text-xs text-slate-700 leading-relaxed">${ben.text}</p>
-                    </div>
-                `;
-            });
-
-            document.getElementById('resultsContainer').classList.remove('hidden');
-            document.getElementById('resultsContainer').scrollIntoView({ behavior: 'smooth' });
-        }
-
-        function speakSummary() {
-            if ('speechSynthesis' in window && currentAnalysisData) {
-                window.speechSynthesis.cancel();
-                const utterance = new SpeechSynthesisUtterance(currentAnalysisData.summary);
-                utterance.lang = 'es-MX';
-                window.speechSynthesis.speak(utterance);
-            }
-        }
-
-        function saveToHistory(item) {
-            let history = JSON.parse(localStorage.getItem('nutriscan_history') || '[]');
-            history.unshift({ ...item, date: new Date().toLocaleDateString() });
-            if (history.length > 10) history.pop();
-            localStorage.setItem('nutriscan_history', JSON.stringify(history));
-        }
-
-        function openHistory() {
-            const historyList = document.getElementById('historyList');
-            let history = JSON.parse(localStorage.getItem('nutriscan_history') || '[]');
-            historyList.innerHTML = '';
-
-            if (history.length === 0) {
-                historyList.innerHTML = `<p class="text-center text-xs text-slate-400 py-6">Aún no hay análisis guardados.</p>`;
-            } else {
-                history.forEach(h => {
-                    historyList.innerHTML += `
-                        <div class="bg-slate-50 border border-slate-100 p-3.5 rounded-2xl flex items-center justify-between">
-                            <div>
-                                <span class="text-[10px] font-bold text-slate-400">${h.date}</span>
-                                <h4 class="font-bold text-sm text-slate-800">${h.name}</h4>
-                            </div>
-                            <span class="font-extrabold text-sm px-2.5 py-1 rounded-xl text-white ${h.scoreBg}">${h.score}</span>
-                        </div>
-                    `;
-                });
-            }
-            document.getElementById('historyModal').classList.remove('hidden');
-        }
-
-        function closeHistory() {
-            document.getElementById('historyModal').classList.add('hidden');
-        }
-
-        // Lógica de Instalación PWA
-        let deferredPrompt;
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            document.getElementById('installBtn').classList.remove('hidden');
-        });
-
-        function installPWA() {
-            if (deferredPrompt) {
-                deferredPrompt.prompt();
-                deferredPrompt.userChoice.then((choiceResult) => {
-                    if (choiceResult.outcome === 'accepted') {
-                        document.getElementById('installBtn').classList.add('hidden');
-                    }
-                    deferredPrompt = null;
-                });
-            }
-        }
-
-        // Registrar Service Worker para PWA
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js').catch(() => {});
-        }
-    </script>
-</body>
-</html>
