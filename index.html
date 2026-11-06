@@ -55,21 +55,33 @@
 
         <!-- Selector / Cámara Box -->
         <div class="glass-card rounded-3xl p-5 border border-slate-100 shadow-xl relative overflow-hidden">
-            <div class="flex flex-col items-center justify-center border-2 border-dashed border-emerald-300 rounded-2xl p-6 bg-emerald-50/50 relative hover:bg-emerald-50 transition group cursor-pointer" onclick="document.getElementById('fileInput').click()">
-                <div id="uploadPlaceholder" class="text-center">
-                    <div class="w-16 h-16 bg-emerald-500 text-white rounded-2xl mx-auto flex items-center justify-center text-2xl shadow-lg shadow-emerald-500/30 mb-3 group-hover:scale-105 transition transform">
+            <div class="flex flex-col items-center justify-center border-2 border-dashed border-emerald-300 rounded-2xl p-6 bg-emerald-50/50 relative hover:bg-emerald-50 transition group">
+                <div id="uploadPlaceholder" class="text-center w-full">
+                    <div class="w-16 h-16 bg-emerald-500 text-white rounded-2xl mx-auto flex items-center justify-center text-2xl shadow-lg shadow-emerald-500/30 mb-3 group-hover:scale-105 transition transform cursor-pointer" onclick="document.getElementById('cameraInput').click()">
                         <i class="fa-solid fa-camera"></i>
                     </div>
-                    <h3 class="font-bold text-slate-700 text-base">Toma una foto o sube imagen</h3>
-                    <p class="text-xs text-slate-400 mt-1">Identifica cualquier alimento, lata o producto</p>
+                    <h3 class="font-bold text-slate-700 text-base">Sube o fotografía tu producto</h3>
+                    <p class="text-xs text-slate-400 mt-1 mb-4">Identifica cualquier alimento, lata o etiqueta</p>
+                    
+                    <div class="flex gap-2 justify-center">
+                        <button type="button" onclick="document.getElementById('cameraInput').click()" class="bg-emerald-600 text-white text-xs font-bold py-2.5 px-4 rounded-xl shadow-md active:scale-95 transition flex items-center gap-2">
+                            <i class="fa-solid fa-camera"></i> Cámara
+                        </button>
+                        <button type="button" onclick="document.getElementById('fileInput').click()" class="bg-slate-200 text-slate-700 text-xs font-bold py-2.5 px-4 rounded-xl shadow-md active:scale-95 transition flex items-center gap-2">
+                            <i class="fa-solid fa-image"></i> Galería
+                        </button>
+                    </div>
                 </div>
+
                 <div id="imagePreviewContainer" class="hidden w-full relative">
                     <img id="imagePreview" src="" alt="Preview" class="w-full h-52 object-cover rounded-xl shadow-inner">
                     <button onclick="event.stopPropagation(); resetUpload();" class="absolute top-2 right-2 bg-slate-900/70 text-white w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-md">
                         <i class="fa-solid fa-xmark"></i>
                     </button>
                 </div>
-                <input type="file" id="fileInput" accept="image/*" capture="environment" class="hidden" onchange="handleImageSelect(event)">
+
+                <input type="file" id="cameraInput" accept="image/*" capture="environment" class="hidden" onchange="handleImageSelect(event)">
+                <input type="file" id="fileInput" accept="image/*" class="hidden" onchange="handleImageSelect(event)">
             </div>
 
             <button id="analyzeBtn" onclick="checkScanLimitAndAnalyze()" disabled class="w-full mt-4 bg-slate-200 text-slate-400 font-bold py-3.5 px-4 rounded-2xl shadow-sm transition flex items-center justify-center gap-2 cursor-not-allowed">
@@ -246,4 +258,117 @@
         }
 
         function subscribePRO() {
-            window.location.href = "
+            window.location.href = "https://buy.stripe.com/test_14A6oJ6WKfgpbgQdcG7ss00";
+        }
+
+        function closePaywall() { document.getElementById('paywallModal').classList.add('hidden'); }
+
+        function handleImageSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                mimeType = file.type;
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('imagePreview').src = e.target.result;
+                    selectedImageBase64 = e.target.result.split(',')[1];
+                    document.getElementById('uploadPlaceholder').classList.add('hidden');
+                    document.getElementById('imagePreviewContainer').classList.remove('hidden');
+                    const analyzeBtn = document.getElementById('analyzeBtn');
+                    analyzeBtn.disabled = false;
+                    analyzeBtn.className = 'w-full mt-4 bg-emerald-600 text-white font-bold py-3.5 px-4 rounded-2xl shadow-lg shadow-emerald-600/30 transition flex items-center justify-center gap-2';
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function resetUpload() {
+            selectedImageBase64 = null;
+            document.getElementById('cameraInput').value = '';
+            document.getElementById('fileInput').value = '';
+            document.getElementById('imagePreviewContainer').classList.add('hidden');
+            document.getElementById('uploadPlaceholder').classList.remove('hidden');
+            const analyzeBtn = document.getElementById('analyzeBtn');
+            analyzeBtn.disabled = true;
+            analyzeBtn.className = 'w-full mt-4 bg-slate-200 text-slate-400 font-bold py-3.5 px-4 rounded-2xl shadow-sm transition flex items-center justify-center gap-2 cursor-not-allowed';
+        }
+
+        function renderResults(data) {
+            document.getElementById('productCategory').innerText = data.category;
+            document.getElementById('productCategory').className = `text-xs font-bold px-2.5 py-1 rounded-full uppercase ${data.categoryClass}`;
+            document.getElementById('productName').innerText = data.name;
+            document.getElementById('productSubtitle').innerText = data.subtitle;
+            document.getElementById('healthScore').innerText = data.score;
+            document.getElementById('scoreCircle').className = `w-16 h-16 rounded-2xl flex items-center justify-center text-white font-extrabold text-xl shadow-lg ${data.scoreBg}`;
+
+            const sealsContainer = document.getElementById('warningSeals');
+            sealsContainer.innerHTML = '';
+            data.seals.forEach(seal => {
+                sealsContainer.innerHTML += `<div class="bg-rose-50 border border-rose-200 text-rose-700 text-[10px] font-extrabold p-2 rounded-xl text-center uppercase tracking-wider flex items-center justify-center gap-1"><i class="fa-solid fa-octagon-exclamation"></i> ${seal}</div>`;
+            });
+
+            const harmfulList = document.getElementById('harmfulList');
+            harmfulList.innerHTML = data.harmful.length === 0 ? `<p class="text-xs text-emerald-600 font-medium"><i class="fa-solid fa-circle-check"></i> Sin aditivos dañinos.</p>` : '';
+            data.harmful.forEach(item => {
+                harmfulList.innerHTML += `<div class="bg-rose-50/60 border border-rose-100 p-3.5 rounded-2xl"><h4 class="font-bold text-slate-800 text-sm">${item.name}</h4><p class="text-xs text-slate-600 mt-1 leading-relaxed">${item.damage}</p></div>`;
+            });
+
+            const benefitsList = document.getElementById('benefitsList');
+            benefitsList.innerHTML = '';
+            data.benefits.forEach(ben => {
+                benefitsList.innerHTML += `<div class="bg-emerald-50/60 border border-emerald-100 p-3.5 rounded-2xl flex items-start gap-2.5"><i class="fa-solid fa-circle-check text-emerald-600 mt-0.5"></i><p class="text-xs text-slate-700 leading-relaxed">${ben.text}</p></div>`;
+            });
+
+            document.getElementById('resultsContainer').classList.remove('hidden');
+            document.getElementById('resultsContainer').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function speakSummary() {
+            if ('speechSynthesis' in window && currentAnalysisData) {
+                window.speechSynthesis.cancel();
+                let utterance = new SpeechSynthesisUtterance(currentAnalysisData.summary);
+                utterance.lang = 'es-MX';
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        function saveToHistory(item) {
+            let history = JSON.parse(localStorage.getItem('nutriscan_history') || '[]');
+            history.unshift({ ...item, date: new Date().toLocaleDateString() });
+            if (history.length > 10) history.pop();
+            localStorage.setItem('nutriscan_history', JSON.stringify(history));
+        }
+
+        function openHistory() {
+            const historyList = document.getElementById('historyList');
+            let history = JSON.parse(localStorage.getItem('nutriscan_history') || '[]');
+            historyList.innerHTML = history.length === 0 ? `<p class="text-center text-xs text-slate-400 py-6">Sin análisis guardados.</p>` : '';
+            history.forEach(h => {
+                historyList.innerHTML += `<div class="bg-slate-50 border border-slate-100 p-3.5 rounded-2xl flex items-center justify-between"><div><span class="text-[10px] font-bold text-slate-400">${h.date}</span><h4 class="font-bold text-sm text-slate-800">${h.name}</h4></div><span class="font-extrabold text-sm px-2.5 py-1 rounded-xl text-white ${h.scoreBg}">${h.score}</span></div>`;
+            });
+            document.getElementById('historyModal').classList.remove('hidden');
+        }
+
+        function closeHistory() { document.getElementById('historyModal').classList.add('hidden'); }
+
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            document.getElementById('installBtn').classList.remove('hidden');
+        });
+
+        function installPWA() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then(() => { deferredPrompt = null; });
+            }
+        }
+
+        updateScanUI();
+
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').catch(() => {});
+        }
+    </script>
+</body>
+</html>
