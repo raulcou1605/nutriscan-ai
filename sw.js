@@ -1,15 +1,25 @@
+const CACHE_NAME = 'nutriscan-v2';
+
 self.addEventListener('install', (e) => {
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', (e) => {
   e.waitUntil(
-    caches.open('nutriscan-v1').then((cache) => {
-      return cache.addAll(['/', '/index.html']);
-    })
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cache) => {
+          if (cache !== CACHE_NAME) {
+            return caches.delete(cache);
+          }
+        })
+      );
+    }).then(() => self.clients.claim())
   );
 });
 
 self.addEventListener('fetch', (e) => {
   e.respondWith(
-    caches.match(e.request).then((response) => {
-      return response || fetch(e.request);
-    })
+    fetch(e.request).catch(() => caches.match(e.request))
   );
 });
