@@ -44,7 +44,6 @@
             </div>
         </div>
         
-        <!-- Contador de Escaneos -->
         <div class="mt-4 bg-white/10 backdrop-blur-md rounded-2xl p-3 flex justify-between items-center text-xs">
             <span class="text-emerald-100 font-medium"><i class="fa-solid fa-bolt text-amber-300"></i> Escaneos de hoy:</span>
             <span id="scanCounterText" class="font-bold bg-white text-emerald-800 px-2.5 py-0.5 rounded-full">5 restantes</span>
@@ -62,7 +61,7 @@
                         <i class="fa-solid fa-camera"></i>
                     </div>
                     <h3 class="font-bold text-slate-700 text-base">Toma una foto o sube imagen</h3>
-                    <p class="text-xs text-slate-400 mt-1">Soporta etiquetas de ingredientes, empaques o alimentos</p>
+                    <p class="text-xs text-slate-400 mt-1">Identifica cualquier alimento, lata o producto</p>
                 </div>
                 <div id="imagePreviewContainer" class="hidden w-full relative">
                     <img id="imagePreview" src="" alt="Preview" class="w-full h-52 object-cover rounded-xl shadow-inner">
@@ -73,18 +72,8 @@
                 <input type="file" id="fileInput" accept="image/*" capture="environment" class="hidden" onchange="handleImageSelect(event)">
             </div>
 
-            <!-- Botones de Ejemplos -->
-            <div class="mt-4">
-                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-2">Prueba con ejemplos rápidos:</span>
-                <div class="grid grid-cols-3 gap-2">
-                    <button onclick="loadPreset('refresco')" class="bg-slate-100 hover:bg-emerald-100 text-slate-700 text-xs font-semibold py-2 px-2 rounded-xl transition text-center border border-slate-200">🥤 Refresco</button>
-                    <button onclick="loadPreset('galletas')" class="bg-slate-100 hover:bg-emerald-100 text-slate-700 text-xs font-semibold py-2 px-2 rounded-xl transition text-center border border-slate-200">🍪 Galletas</button>
-                    <button onclick="loadPreset('ensalada')" class="bg-slate-100 hover:bg-emerald-100 text-slate-700 text-xs font-semibold py-2 px-2 rounded-xl transition text-center border border-slate-200">🥗 Ensalada</button>
-                </div>
-            </div>
-
             <button id="analyzeBtn" onclick="checkScanLimitAndAnalyze()" disabled class="w-full mt-4 bg-slate-200 text-slate-400 font-bold py-3.5 px-4 rounded-2xl shadow-sm transition flex items-center justify-center gap-2 cursor-not-allowed">
-                <i class="fa-solid fa-wand-magic-sparkles"></i> Analizar con IA
+                <i class="fa-solid fa-wand-magic-sparkles"></i> Analizar con IA Real
             </button>
         </div>
 
@@ -94,8 +83,8 @@
                 <i class="fa-solid fa-brain"></i>
             </div>
             <div>
-                <h3 class="font-bold text-lg text-slate-800">Analizando producto...</h3>
-                <p class="text-xs text-slate-500 mt-1">Inspeccionando ingredientes y riesgos nutricionales</p>
+                <h3 class="font-bold text-lg text-slate-800">Gemini IA analizando producto...</h3>
+                <p class="text-xs text-slate-500 mt-1">Reconociendo ingredientes, aditivos y riesgos</p>
             </div>
         </div>
 
@@ -108,274 +97,4 @@
                     <p id="productSubtitle" class="text-xs text-slate-500 mt-0.5">Evaluación general</p>
                 </div>
                 <div class="text-center relative">
-                    <div id="scoreCircle" class="w-16 h-16 rounded-2xl flex items-center justify-center text-white font-extrabold text-xl shadow-lg">
-                        <span id="healthScore">0</span>
-                    </div>
-                    <span class="text-[10px] font-bold text-slate-400 uppercase block mt-1">Score / 100</span>
-                </div>
-            </div>
-
-            <button onclick="speakSummary()" class="w-full bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold py-3 px-4 rounded-2xl border border-emerald-200 flex items-center justify-center gap-2 transition active:scale-95 shadow-sm">
-                <i class="fa-solid fa-volume-high text-emerald-600"></i> Escuchar Resumen Nutricional
-            </button>
-
-            <div id="warningSeals" class="grid grid-cols-2 gap-2"></div>
-
-            <div class="glass-card rounded-3xl p-5 border border-slate-100 shadow-xl space-y-3">
-                <h3 class="font-extrabold text-slate-800 flex items-center gap-2 text-base">
-                    <i class="fa-solid fa-triangle-exclamation text-rose-500"></i> Ingredientes Nocivos
-                </h3>
-                <div id="harmfulList" class="space-y-3"></div>
-            </div>
-
-            <div class="glass-card rounded-3xl p-5 border border-slate-100 shadow-xl space-y-3">
-                <h3 class="font-extrabold text-slate-800 flex items-center gap-2 text-base">
-                    <i class="fa-solid fa-heart-pulse text-emerald-500"></i> Beneficios Nutricionales
-                </h3>
-                <div id="benefitsList" class="space-y-2"></div>
-            </div>
-        </div>
-
-    </main>
-
-    <!-- Modal de Pago / Suscripción Premium -->
-    <div id="paywallModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl text-center space-y-4 relative animate-in zoom-in-95 duration-200">
-            <button onclick="closePaywall()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
-                <i class="fa-solid fa-xmark text-lg"></i>
-            </button>
-            
-            <div class="w-16 h-16 bg-gradient-to-tr from-amber-400 to-amber-200 text-slate-900 rounded-3xl mx-auto flex items-center justify-center text-3xl shadow-lg shadow-amber-400/30">
-                <i class="fa-solid fa-crown"></i>
-            </div>
-            
-            <div>
-                <h3 class="font-extrabold text-xl text-slate-900">¡Límite diario alcanzado!</h3>
-                <p class="text-xs text-slate-500 mt-1">Has usado tus 5 escaneos gratuitos de hoy. Pásate a PRO para continuar.</p>
-            </div>
-
-            <div class="bg-slate-50 rounded-2xl p-4 border border-slate-100 text-left space-y-2">
-                <div class="flex items-center gap-2 text-xs text-slate-700 font-semibold">
-                    <i class="fa-solid fa-check text-emerald-500"></i> Escaneos ilimitados con IA
-                </div>
-                <div class="flex items-center gap-2 text-xs text-slate-700 font-semibold">
-                    <i class="fa-solid fa-check text-emerald-500"></i> Análisis detallado de aditivos
-                </div>
-                <div class="flex items-center gap-2 text-xs text-slate-700 font-semibold">
-                    <i class="fa-solid fa-check text-emerald-500"></i> Sin publicidad
-                </div>
-            </div>
-
-            <div class="py-2">
-                <span class="text-3xl font-extrabold text-slate-900">$2.99 USD</span>
-                <span class="text-xs text-slate-400">/ mes</span>
-            </div>
-
-            <button onclick="subscribePRO()" class="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-extrabold py-3.5 px-4 rounded-2xl shadow-lg shadow-emerald-500/30 transition transform active:scale-95">
-                Obtener NutriScan PRO
-            </button>
-        </div>
-    </div>
-
-    <!-- Modal Historial -->
-    <div id="historyModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
-        <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl max-h-[80vh] flex flex-col shadow-2xl">
-            <div class="p-5 border-b border-slate-100 flex justify-between items-center">
-                <h3 class="font-extrabold text-lg text-slate-800">Historial de Escaneos</h3>
-                <button onclick="closeHistory()" class="w-8 h-8 bg-slate-100 text-slate-600 rounded-full flex items-center justify-center">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
-            <div id="historyList" class="p-5 overflow-y-auto space-y-3 flex-1"></div>
-        </div>
-    </div>
-
-    <script>
-        const MAX_FREE_SCANS = 5;
-        let currentAnalysisData = null;
-        let selectedImageData = null;
-
-        const mockDatabase = {
-            refresco: { category: "Bebida Ultraprocesada", categoryClass: "bg-rose-100 text-rose-700", name: "Refresco de Cola (600ml)", subtitle: "Alto contenido de azúcares libres", score: 18, scoreBg: "bg-rose-500", seals: ["EXCESO AZÚCARES", "CONTIENE CAFEÍNA"], harmful: [{ name: "Jarabe de Maíz de Alta Fructosa", damage: "Provoca acumulación rápida de grasa visceral e inflamación hepática." }], benefits: [{ text: "Aporte calórico de respuesta rápida." }], summary: "Bebida ultraprocesada con puntuación de 18/100." },
-            galletas: { category: "Galletas Rellenas", categoryClass: "bg-amber-100 text-amber-800", name: "Galletas de Chocolate", subtitle: "Grasas refinadas y azúcares", score: 28, scoreBg: "bg-amber-500", seals: ["EXCESO CALORÍAS", "EXCESO AZÚCARES"], harmful: [{ name: "Grasas Hidrogenadas", damage: "Incrementan el colesterol perjudicial LDL." }], benefits: [{ text: "Aporte energético inmediato." }], summary: "Galletas ultraprocesadas con puntuación de 28/100." },
-            ensalada: { category: "Alimento Natural", categoryClass: "bg-emerald-100 text-emerald-800", name: "Ensalada de Quinoa y Aguacate", subtitle: "Alto valor nutricional", score: 94, scoreBg: "bg-emerald-500", seals: ["PRODUCTO NATURAL", "ALTO EN FIBRA"], harmful: [], benefits: [{ text: "Grasas saludables y proteína de alto valor biológico." }], summary: "Excelente elección saludable con puntuación de 94/100." }
-        };
-
-        function getTodayKey() {
-            return `scans_${new Date().toISOString().slice(0, 10)}`;
-        }
-
-        function getScansUsedToday() {
-            return parseInt(localStorage.getItem(getTodayKey()) || '0', 10);
-        }
-
-        function isUserPro() {
-            return localStorage.getItem('nutriscan_is_pro') === 'true';
-        }
-
-        function updateScanUI() {
-            if (isUserPro()) {
-                document.getElementById('scanCounterText').innerText = 'PRO Ilimitado';
-                document.getElementById('userStatusBadge').innerText = 'PRO Activo';
-                document.getElementById('userStatusBadge').className = 'bg-amber-400 text-slate-900 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-sm';
-            } else {
-                const remaining = Math.max(0, MAX_FREE_SCANS - getScansUsedToday());
-                document.getElementById('scanCounterText').innerText = `${remaining} restantes`;
-            }
-        }
-
-        function checkScanLimitAndAnalyze() {
-            if (isUserPro() || getScansUsedToday() < MAX_FREE_SCANS) {
-                analyzeProduct();
-            } else {
-                document.getElementById('paywallModal').classList.remove('hidden');
-            }
-        }
-
-        function analyzeProduct() {
-            document.getElementById('resultsContainer').classList.add('hidden');
-            document.getElementById('loadingBox').classList.remove('hidden');
-
-            setTimeout(() => {
-                document.getElementById('loadingBox').classList.add('hidden');
-                
-                if (!isUserPro()) {
-                    const used = getScansUsedToday();
-                    localStorage.setItem(getTodayKey(), used + 1);
-                    updateScanUI();
-                }
-
-                if (!currentAnalysisData) currentAnalysisData = mockDatabase['refresco'];
-                renderResults(currentAnalysisData);
-                saveToHistory(currentAnalysisData);
-            }, 1200);
-        }
-
-        function subscribePRO() {
-            // Enlace real de pago de Stripe configurado
-            window.location.href = "https://buy.stripe.com/test_14A6oJ6WKfgpbgQdcG7ss00";
-        }
-
-        function closePaywall() {
-            document.getElementById('paywallModal').classList.add('hidden');
-        }
-
-        function handleImageSelect(event) {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    selectedImageData = e.target.result;
-                    document.getElementById('imagePreview').src = selectedImageData;
-                    document.getElementById('uploadPlaceholder').classList.add('hidden');
-                    document.getElementById('imagePreviewContainer').classList.remove('hidden');
-                    const analyzeBtn = document.getElementById('analyzeBtn');
-                    analyzeBtn.disabled = false;
-                    analyzeBtn.className = 'w-full mt-4 bg-emerald-600 text-white font-bold py-3.5 px-4 rounded-2xl shadow-lg shadow-emerald-600/30 transition flex items-center justify-center gap-2';
-                }
-                reader.readAsDataURL(file);
-            }
-        }
-
-        function resetUpload() {
-            selectedImageData = null;
-            document.getElementById('fileInput').value = '';
-            document.getElementById('imagePreviewContainer').classList.add('hidden');
-            document.getElementById('uploadPlaceholder').classList.remove('hidden');
-            const analyzeBtn = document.getElementById('analyzeBtn');
-            analyzeBtn.disabled = true;
-            analyzeBtn.className = 'w-full mt-4 bg-slate-200 text-slate-400 font-bold py-3.5 px-4 rounded-2xl shadow-sm transition flex items-center justify-center gap-2 cursor-not-allowed';
-        }
-
-        function loadPreset(type) {
-            currentAnalysisData = mockDatabase[type];
-            selectedImageData = type === 'refresco' ? 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=500' : type === 'galletas' ? 'https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=500' : 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=500';
-            document.getElementById('imagePreview').src = selectedImageData;
-            document.getElementById('uploadPlaceholder').classList.add('hidden');
-            document.getElementById('imagePreviewContainer').classList.remove('hidden');
-            const analyzeBtn = document.getElementById('analyzeBtn');
-            analyzeBtn.disabled = false;
-            analyzeBtn.className = 'w-full mt-4 bg-emerald-600 text-white font-bold py-3.5 px-4 rounded-2xl shadow-lg shadow-emerald-600/30 transition flex items-center justify-center gap-2';
-            checkScanLimitAndAnalyze();
-        }
-
-        function renderResults(data) {
-            document.getElementById('productCategory').innerText = data.category;
-            document.getElementById('productCategory').className = `text-xs font-bold px-2.5 py-1 rounded-full uppercase ${data.categoryClass}`;
-            document.getElementById('productName').innerText = data.name;
-            document.getElementById('productSubtitle').innerText = data.subtitle;
-            document.getElementById('healthScore').innerText = data.score;
-            document.getElementById('scoreCircle').className = `w-16 h-16 rounded-2xl flex items-center justify-center text-white font-extrabold text-xl shadow-lg ${data.scoreBg}`;
-
-            const sealsContainer = document.getElementById('warningSeals');
-            sealsContainer.innerHTML = '';
-            data.seals.forEach(seal => {
-                sealsContainer.innerHTML += `<div class="bg-rose-50 border border-rose-200 text-rose-700 text-[10px] font-extrabold p-2 rounded-xl text-center uppercase tracking-wider flex items-center justify-center gap-1"><i class="fa-solid fa-octagon-exclamation"></i> ${seal}</div>`;
-            });
-
-            const harmfulList = document.getElementById('harmfulList');
-            harmfulList.innerHTML = data.harmful.length === 0 ? `<p class="text-xs text-emerald-600 font-medium"><i class="fa-solid fa-circle-check"></i> Sin aditivos dañinos.</p>` : '';
-            data.harmful.forEach(item => {
-                harmfulList.innerHTML += `<div class="bg-rose-50/60 border border-rose-100 p-3.5 rounded-2xl"><h4 class="font-bold text-slate-800 text-sm">${item.name}</h4><p class="text-xs text-slate-600 mt-1 leading-relaxed">${item.damage}</p></div>`;
-            });
-
-            const benefitsList = document.getElementById('benefitsList');
-            benefitsList.innerHTML = '';
-            data.benefits.forEach(ben => {
-                benefitsList.innerHTML += `<div class="bg-emerald-50/60 border border-emerald-100 p-3.5 rounded-2xl flex items-start gap-2.5"><i class="fa-solid fa-circle-check text-emerald-600 mt-0.5"></i><p class="text-xs text-slate-700 leading-relaxed">${ben.text}</p></div>`;
-            });
-
-            document.getElementById('resultsContainer').classList.remove('hidden');
-            document.getElementById('resultsContainer').scrollIntoView({ behavior: 'smooth' });
-        }
-
-        function speakSummary() {
-            if ('speechSynthesis' in window && currentAnalysisData) {
-                window.speechSynthesis.cancel();
-                let utterance = new SpeechSynthesisUtterance(currentAnalysisData.summary);
-                utterance.lang = 'es-MX';
-                window.speechSynthesis.speak(utterance);
-            }
-        }
-
-        function saveToHistory(item) {
-            let history = JSON.parse(localStorage.getItem('nutriscan_history') || '[]');
-            history.unshift({ ...item, date: new Date().toLocaleDateString() });
-            if (history.length > 10) history.pop();
-            localStorage.setItem('nutriscan_history', JSON.stringify(history));
-        }
-
-        function openHistory() {
-            const historyList = document.getElementById('historyList');
-            let history = JSON.parse(localStorage.getItem('nutriscan_history') || '[]');
-            historyList.innerHTML = history.length === 0 ? `<p class="text-center text-xs text-slate-400 py-6">Sin análisis guardados.</p>` : '';
-            history.forEach(h => {
-                historyList.innerHTML += `<div class="bg-slate-50 border border-slate-100 p-3.5 rounded-2xl flex items-center justify-between"><div><span class="text-[10px] font-bold text-slate-400">${h.date}</span><h4 class="font-bold text-sm text-slate-800">${h.name}</h4></div><span class="font-extrabold text-sm px-2.5 py-1 rounded-xl text-white ${h.scoreBg}">${h.score}</span></div>`;
-            });
-            document.getElementById('historyModal').classList.remove('hidden');
-        }
-
-        function closeHistory() { document.getElementById('historyModal').classList.add('hidden'); }
-
-        let deferredPrompt;
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            document.getElementById('installBtn').classList.remove('hidden');
-        });
-
-        function installPWA() {
-            if (deferredPrompt) {
-                deferredPrompt.prompt();
-                deferredPrompt.userChoice.then(() => { deferredPrompt = null; });
-            }
-        }
-
-        updateScanUI();
-
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js').catch(() => {});
-        }
-    </script>
-</body>
-</html>
+                    <div id="scoreCircle" class="w-16 h-16 rounded-2xl flex items-center justify-center text-white
