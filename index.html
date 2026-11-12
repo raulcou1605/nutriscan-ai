@@ -7,12 +7,12 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body class="bg-slate-50 min-h-screen text-slate-800 flex flex-col items-center justify-between p-4">
+<body class="bg-slate-50 min-h-screen text-slate-800 flex flex-col items-center justify-between pb-8">
 
     <!-- CONTENEDOR DE AUTENTICACIÓN -->
-    <div id="auth-container" class="w-full max-w-md bg-white p-8 rounded-2xl shadow-xl my-auto">
+    <div id="auth-container" class="w-full max-w-md bg-white p-8 rounded-2xl shadow-xl my-auto m-4">
         <h1 class="text-2xl font-bold text-center text-emerald-600 mb-2">NutriScan AI</h1>
-        <p class="text-center text-slate-500 mb-6 text-sm">Inicia sesión para gestionar tus escaneos gratuitos y tu cuenta PRO.</p>
+        <p class="text-center text-slate-500 mb-6 text-sm">Inicia sesión para gestionar tus escaneos y tu cuenta PRO.</p>
         
         <form id="auth-form" class="space-y-4">
             <div>
@@ -23,58 +23,86 @@
                 <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Contraseña</label>
                 <input type="password" id="auth-password" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none">
             </div>
-            <button type="submit" id="auth-btn" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-xl transition">Iniciar Sesión / Registrarse</button>
+            <button type="submit" id="auth-btn" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-xl transition shadow-lg shadow-emerald-600/20">Iniciar Sesión / Registrarse</button>
         </form>
         <p id="auth-error" class="text-red-500 text-xs text-center mt-3 hidden"></p>
     </div>
 
     <!-- CONTENEDOR PRINCIPAL DE LA PWA (Oculto hasta iniciar sesión) -->
-    <div id="app-container" class="w-full max-w-md bg-white p-6 rounded-2xl shadow-xl hidden flex flex-col items-center">
-        <div class="w-full flex justify-between items-center mb-4">
-            <span id="user-email-display" class="text-xs text-slate-500 font-medium truncate max-w-[200px]"></span>
-            <button onclick="logout()" class="text-xs text-rose-600 font-semibold hover:underline">Cerrar sesión</button>
+    <div id="app-container" class="w-full max-w-md hidden flex flex-col items-center">
+        
+        <!-- BARRA SUPERIOR VERDE -->
+        <div class="w-full bg-gradient-to-r from-emerald-500 to-teal-500 p-6 rounded-b-3xl shadow-lg flex justify-between items-center text-white mb-6">
+            <div class="flex items-center space-x-2">
+                <svg class="w-5 h-5 text-amber-300 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                <span id="status-badge" class="text-sm font-bold">Escaneos de hoy: Verificando...</span>
+            </div>
+            <button onclick="logout()" class="text-xs bg-black/20 hover:bg-black/30 px-3 py-1.5 rounded-full transition">Salir</button>
         </div>
 
-        <h1 class="text-2xl font-bold text-emerald-600 mb-1">NutriScan AI</h1>
-        <div id="status-badge" class="text-xs px-3 py-1 rounded-full font-semibold mb-4 bg-slate-100 text-slate-600">Verificando estado...</div>
-
-        <!-- ZONA DE ESCANEO -->
-        <div class="w-full border-2 border-dashed border-slate-300 rounded-2xl p-6 text-center cursor-pointer hover:border-emerald-500 transition mb-6" onclick="document.getElementById('file-input').click()">
-            <input type="file" id="file-input" accept="image/*" class="hidden" onchange="handleImage(event)">
-            <svg class="w-10 h-10 mx-auto text-emerald-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-            <p class="text-sm font-semibold text-slate-700">Toca para fotografiar o subir producto</p>
-            <span class="text-xs text-slate-400">Analiza etiquetas y riesgos al instante</span>
-        </div>
-
-        <div id="loading" class="hidden my-4 text-center text-emerald-600 font-medium text-sm animate-pulse">Analizando producto con IA...</div>
-
-        <!-- RESULTADOS DETALLADOS -->
-        <div id="result-box" class="w-full bg-slate-50 p-5 rounded-2xl hidden space-y-4 shadow-inner text-left">
-            <div class="flex justify-between items-start">
-                <div>
-                    <span id="res-category" class="text-xs font-bold px-2.5 py-1 rounded-full uppercase tracking-wider"></span>
-                    <h2 id="res-name" class="text-lg font-bold text-slate-900 mt-1"></h2>
+        <div class="w-full px-4 space-y-6">
+            <!-- TARJETA PRINCIPAL DE ESCANEO -->
+            <div class="bg-white p-6 rounded-3xl shadow-xl border border-slate-100 text-center space-y-6">
+                
+                <!-- Ícono de cámara superior -->
+                <div class="w-16 h-16 mx-auto bg-emerald-500 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/30">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                 </div>
-                <div id="res-score-badge" class="px-3 py-1 rounded-xl text-white font-bold text-sm"></div>
+
+                <div>
+                    <h2 class="text-lg font-bold text-slate-800">Sube o fotografía tu producto</h2>
+                    <p class="text-xs text-slate-400 mt-1">Identifica cualquier alimento, lata o etiqueta</p>
+                </div>
+
+                <!-- Botones de Cámara y Galería separados -->
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="triggerCamera()" class="flex items-center justify-center space-x-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-4 rounded-xl shadow-md transition text-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                        <span>Cámara</span>
+                    </button>
+                    <button onclick="triggerGallery()" class="flex items-center justify-center space-x-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-3 px-4 rounded-xl transition text-sm border border-slate-200">
+                        <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        <span>Galería</span>
+                    </button>
+                </div>
+
+                <!-- Input file oculto para manejar ambos -->
+                <input type="file" id="file-input" accept="image/*" class="hidden" onchange="handleImage(event)">
+                <input type="file" id="camera-input" accept="image/*" capture="environment" class="hidden" onchange="handleImage(event)">
+
+                <!-- Botón de Análisis -->
+                <button onclick="document.getElementById('camera-input').click()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold py-3 rounded-xl transition text-xs border border-slate-200 flex items-center justify-center space-x-2">
+                    <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
+                    <span>Analizar con IA Real</span>
+                </button>
             </div>
 
-            <!-- Sellos de advertencia -->
-            <div id="seals-container" class="flex flex-wrap gap-1.5"></div>
+            <div id="loading" class="hidden text-center text-emerald-600 font-medium text-sm animate-pulse">Analizando producto con IA...</div>
 
-            <!-- Ingredientes cuestionables -->
-            <div class="space-y-1">
-                <h4 class="text-xs font-bold uppercase text-rose-600">Ingredientes a considerar:</h4>
-                <ul id="harmful-list" class="text-xs text-slate-600 space-y-1"></ul>
+            <!-- RESULTADOS DETALLADOS -->
+            <div id="result-box" class="w-full bg-white p-6 rounded-3xl shadow-xl hidden space-y-4 border border-slate-100 text-left">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <span id="res-category" class="text-xs font-bold px-2.5 py-1 rounded-full uppercase tracking-wider"></span>
+                        <h2 id="res-name" class="text-lg font-bold text-slate-900 mt-1"></h2>
+                    </div>
+                    <div id="res-score-badge" class="px-3 py-1 rounded-xl text-white font-bold text-sm"></div>
+                </div>
+
+                <div id="seals-container" class="flex flex-wrap gap-1.5"></div>
+
+                <div class="space-y-1">
+                    <h4 class="text-xs font-bold uppercase text-rose-600">Ingredientes a considerar:</h4>
+                    <ul id="harmful-list" class="text-xs text-slate-600 space-y-1"></ul>
+                </div>
+
+                <div class="space-y-1">
+                    <h4 class="text-xs font-bold uppercase text-emerald-600">Puntos favorables:</h4>
+                    <ul id="benefits-list" class="text-xs text-slate-600 space-y-1"></ul>
+                </div>
+
+                <p id="res-summary" class="text-xs text-slate-700 bg-slate-50 p-3 rounded-xl border border-slate-200"></p>
             </div>
-
-            <!-- Beneficios -->
-            <div class="space-y-1">
-                <h4 class="text-xs font-bold uppercase text-emerald-600">Puntos favorables:</h4>
-                <ul id="benefits-list" class="text-xs text-slate-600 space-y-1"></ul>
-            </div>
-
-            <!-- Resumen -->
-            <p id="res-summary" class="text-xs text-slate-700 bg-white p-3 rounded-xl border border-slate-200"></p>
         </div>
     </div>
 
@@ -138,17 +166,14 @@
         async function showApp() {
             document.getElementById('auth-container').classList.add('hidden');
             document.getElementById('app-container').classList.remove('hidden');
-            document.getElementById('user-email-display').textContent = currentUser.email;
 
             const { data } = await supabaseClient.from('profiles').select('*').eq('id', currentUser.id).single();
             if (data) {
                 const badge = document.getElementById('status-badge');
                 if (data.is_pro) {
-                    badge.textContent = "Plan PRO (Ilimitado)";
-                    badge.className = "text-xs px-3 py-1 rounded-full font-semibold mb-4 bg-emerald-100 text-emerald-800";
+                    badge.textContent = "Plan PRO: Escaneos Ilimitados";
                 } else {
-                    badge.textContent = `Escaneos gratuitos hoy: ${data.scans_today || 0}/3`;
-                    badge.className = "text-xs px-3 py-1 rounded-full font-semibold mb-4 bg-amber-100 text-amber-800";
+                    badge.textContent = `Escaneos de hoy: ${3 - (data.scans_today || 0)} restantes`;
                 }
             }
         }
@@ -156,6 +181,14 @@
         async function logout() {
             await supabaseClient.auth.signOut();
             window.location.reload();
+        }
+
+        function triggerCamera() {
+            document.getElementById('camera-input').click();
+        }
+
+        function triggerGallery() {
+            document.getElementById('file-input').click();
         }
 
         async function handleImage(event) {
@@ -202,23 +235,14 @@
                     scoreBadge.textContent = `${a.score}/100`;
                     scoreBadge.className = `px-3 py-1 rounded-xl text-white font-bold text-sm ${a.scoreBg}`;
 
-                    // Sellos
-                    const sealsContainer = document.getElementById('seals-container');
-                    sealsContainer.innerHTML = (a.seals || []).map(s => `<span class="bg-red-50 text-red-700 border border-red-200 text-[10px] font-bold px-2 py-0.5 rounded">${s}</span>`).join('');
-
-                    // Dañinos
-                    const harmfulList = document.getElementById('harmful-list');
-                    harmfulList.innerHTML = (a.harmful || []).map(h => `<li>• <b>${h.name}:</b> ${h.damage}</li>`).join('');
-
-                    // Beneficios
-                    const benefitsList = document.getElementById('benefits-list');
-                    benefitsList.innerHTML = (a.benefits || []).map(b => `<li>• ${b.text}</li>`).join('');
-
+                    document.getElementById('seals-container').innerHTML = (a.seals || []).map(s => `<span class="bg-red-50 text-red-700 border border-red-200 text-[10px] font-bold px-2 py-0.5 rounded">${s}</span>`).join('');
+                    document.getElementById('harmful-list').innerHTML = (a.harmful || []).map(h => `<li>• <b>${h.name}:</b> ${h.damage}</li>`).join('');
+                    document.getElementById('benefits-list').innerHTML = (a.benefits || []).map(b => `<li>• ${b.text}</li>`).join('');
                     document.getElementById('res-summary').textContent = a.summary;
                     document.getElementById('result-box').classList.remove('hidden');
 
                     if (!data.is_pro) {
-                        document.getElementById('status-badge').textContent = `Escaneos gratuitos hoy: ${data.scans_today}/3`;
+                        document.getElementById('status-badge').textContent = `Escaneos de hoy: ${3 - data.scans_today} restantes`;
                     }
                 } catch (err) {
                     alert("Error: " + err.message);
