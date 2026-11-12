@@ -1,5 +1,9 @@
 const { createClient } = require('@supabase/supabase-js');
 
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+const groqApiKey = process.env.GROQ_API_KEY;
+
 module.exports = async function handler(req, res) {
     res.setHeader('Content-Type', 'application/json');
 
@@ -8,10 +12,6 @@ module.exports = async function handler(req, res) {
     }
 
     try {
-        const supabaseUrl = process.env.SUPABASE_URL;
-        const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
-        const groqApiKey = process.env.GROQ_API_KEY;
-
         if (!supabaseUrl || !supabaseAnonKey || !groqApiKey) {
             return res.status(500).json({ error: 'Faltan variables de entorno en Vercel.' });
         }
@@ -31,21 +31,22 @@ module.exports = async function handler(req, res) {
             return res.status(401).json({ error: 'Usuario no autenticado.' });
         }
 
+        // Buscar o asegurar el perfil del usuario mediante upsert seguro
         let { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', user.id)
-            .single();
+            .maybeSingle();
 
-        if (profileError || !profile) {
+        if (!profile) {
             const { data: newProfile, error: createError } = await supabase
                 .from('profiles')
-                .insert([{ id: user.id, is_pro: false, scans_today: 0 }])
+                .upsert([{ id: user.id, is_pro: false, scans_today: 0 }])
                 .select()
                 .single();
             
             if (createError) {
-                return res.status(500).json({ error: 'Error al inicializar el perfil.' });
+                return res.status(500).json({ error: 'Error al inicializar el perfil en la base de datos: ' + createError.message });
             }
             profile = newProfile;
         }
