@@ -1,134 +1,147 @@
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+const groqApiKey = process.env.GROQ_API_KEY;
+
 export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
-  try {
-    const { imageBase64, mimeType } = req.body;
-    const authHeader = req.headers.authorization;
-    const groqKey = process.env.GROQ_API_KEY;
-    const supabaseUrl = process.env.SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_ANON_KEY;
-
-    if (!authHeader) {
-      return res.status(401).json({ error: 'Debes iniciar sesión para escanear productos.' });
+    if (req.method !== 'POST') {
+        return res.status(405).json({ error: 'Método no permitido' });
     }
 
-    if (!imageBase64) {
-      return res.status(400).json({ error: 'No se ha proporcionado ninguna imagen.' });
+    try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            return res.status(401).json({ error: 'Sesión inválida o expirada. Inicia sesión nuevamente.' });
+        }
+
+        const token = authHeader.split(' ')[1];
+        
+        // Inicializar cliente de Supabase con el token del usuario
+        const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+            global: { headers: { Authorization: `Bearer ${token}` } }
+        });
+
+        // Verificar usuario autenticado
+        const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+        if (userError || !user) {
+            return res.status(401).json({ error: 'Sesión inválida o expirada. Inicia sesión nuevamente.' });
+        }
+
+        // Obtener perfil del usuario
+        let { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .single();
+
+        if (profileError || !profile) {
+            // Si el perfil no existe, crearlo por defecto
+            const { data: newProfile, error: createError } = await supabase
+                .from('profiles')
+                .insert([{ id: user.id, is_pro: false, scans_today: 0 }])
+                .select()
+                .single();
+            
+            if (createError) {
+                return res.status(500).json({ error: 'Error al inicializar el perfil de usuario.' });
+            }
+            profile = newProfile;
+        }
+
+        // Si es PRO, pasa directo sin límites
+        if (!profile.is_pro) {
+            const today = new Date().toISOString().split('T')[0];
+            const lastScanDate = profile.last_scan_date ? profile.last_scan_date.split('T')[0] : '';
+
+            let scansToday = profile.scans_today || 0;
+
+            if (lastScanDate !== today) {
+                scansToday = 0; // Reiniciar contador si es un nuevo día
+            }
+
+            if (scansToday >= 3) {
+                return res.status(429).json({ error: 'Límite diario alcanzado', scans_today: scansToday });
+            }
+
+            // Incrementar escaneos
+            await supabase
+                .from('profiles')
+                .update({ 
+                    scans_today: scansToday + 1, 
+                    last_scan_date: new Date().toISOString() 
+                })
+                .eq('id', user.id);
+            
+            profile.scans_today = scansToday + 1;
+        }
+
+        const { imageBase64, mimeType } = req.body;
+        if (!imageBase64) {
+            return res.status(400).json({ error: 'No se proporcionó ninguna imagen' });
+        }
+
+        // Llamada a la API de Groq para el análisis con IA
+        const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${groqApiKey}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                model: 'meta-llama/llama-3.2-11b-vision-preview',
+                messages: [
+                    {
+                        role: 'user',
+                        content: [
+                            {
+                                type: 'text',
+                                text: `Analiza esta etiqueta o producto alimenticio. Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin texto adicional, sin bloques de código markdown como \`\`\`) con esta estructura exacta:
+{
+  "name": "Nombre del producto",
+  "category": "Categoría (ej. Ultraprocesado, Saludable, Bebida)",
+  "categoryClass": "bg-red-100 text-red-800 o bg-emerald-100 text-emerald-800",
+  "score": 75,
+  "scoreBg": "bg-amber-500",
+  "seals": ["Exceso Sodio", "Exceso Azúcares"],
+  "harmful": [{"name": "Ingrediente", "damage": "Efecto negativo"}],
+  "benefits": [{"text": "Punto favorable"}],
+  "summary": "Resumen breve del análisis general."
+}`
+                            },
+                            {
+                                type: 'image_url',
+                                image_url: {
+                                    url: `data:${mimeType || 'image/jpeg'};base64,${imageBase64}`
+                                }
+                            }
+                        ]
+                    }
+                ],
+                temperature: 0.2,
+                max_tokens: 1024
+            })
+        });
+
+        const groqData = await groqResponse.json();
+        if (!groqResponse.ok) {
+            throw new Error(groqData.error?.message || 'Error al comunicarse con la IA');
+        }
+
+        let rawContent = groqData.choices[0].message.content.trim();
+        rawContent = rawContent.replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/\s*```$/, '');
+        
+        const analysis = JSON.parse(rawContent);
+
+        return res.status(200).json({
+            success: true,
+            analysis,
+            is_pro: profile.is_pro,
+            scans_today: profile.scans_today
+        });
+
+    } catch (err) {
+        console.error('Error en analyze.js:', err);
+        return res.status(500).json({ error: err.message || 'Error interno en el servidor' });
     }
-
-    // 1. Verificar identidad del usuario con Supabase
-    const userRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
-      headers: {
-        'Authorization': authHeader,
-        'apikey': supabaseKey
-      }
-    });
-
-    if (!userRes.ok) {
-      return res.status(401).json({ error: 'Sesión inválida o expirada. Inicia sesión nuevamente.' });
-    }
-    const user = await userRes.json();
-
-    // 2. Consultar perfil, escaneos de hoy y estado PRO en Supabase
-    const profileRes = await fetch(`${supabaseUrl}/rest/v1/profiles?id=eq.${user.id}&select=*`, {
-      headers: {
-        'Authorization': authHeader,
-        'apikey': supabaseKey
-      }
-    });
-    const profiles = await profileRes.json();
-    let profile = profiles[0];
-
-    const today = new Date().toISOString().slice(0, 10);
-    let scansToday = profile.scans_today || 0;
-
-    // Si es un día nuevo, reiniciar el contador a 0
-    if (profile.last_scan_date !== today) {
-      scansToday = 0;
-    }
-
-    // 3. Validar límite estricto en el servidor (nadie puede saltárselo cambiando navegador)
-    if (!profile.is_pro && scansToday >= 3) {
-      return res.status(429).json({ 
-        error: 'LIMIT_REACHED',
-        message: 'Has alcanzado tus 3 escaneos gratuitos de hoy.' 
-      });
-    }
-
-    // 4. Llamar a Groq para analizar la imagen
-    const promptText = `Analiza esta imagen de un producto alimenticio. Identifica el producto real y devuelve únicamente un objeto JSON estricto con esta estructura exacta, sin texto adicional ni bloques markdown:
-    {
-      "category": "Categoría del producto",
-      "categoryClass": "bg-rose-100 text-rose-800",
-      "name": "Nombre completo del producto",
-      "subtitle": "Descripción breve",
-      "score": 50,
-      "scoreBg": "bg-amber-500",
-      "seals": ["EXCESO SODIO"],
-      "harmful": [{"name": "Ingrediente", "damage": "Efecto breve"}],
-      "benefits": [{"text": "Beneficio nutricional"}],
-      "summary": "Resumen ejecutivo para voz."
-    }`;
-
-    const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${groqKey}`
-      },
-      body: JSON.stringify({
-        model: "qwen/qwen3.8-27b",
-        messages: [
-          {
-            role: "user",
-            content: [
-              { type: "text", text: promptText },
-              {
-                type: "image_url",
-                image_url: {
-                  url: `data:${mimeType || "image/jpeg"};base64,${imageBase64}`
-                }
-              }
-            ]
-          }
-        ],
-        temperature: 0.1,
-        response_format: { type: "json_object" }
-      })
-    });
-
-    const data = await groqRes.json();
-
-    if (data.error) {
-      return res.status(500).json({ error: `Error de Groq: ${data.error.message}` });
-    }
-
-    const parsedData = JSON.parse(data.choices[0].message.content);
-
-    // 5. Actualizar contador de escaneos en Supabase
-    const newScansCount = scansToday + 1;
-    await fetch(`${supabaseUrl}/rest/v1/profiles?id=eq.${user.id}`, {
-      method: 'PATCH',
-      headers: {
-        'Authorization': authHeader,
-        'apikey': supabaseKey,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        scans_today: newScansCount,
-        last_scan_date: today
-      })
-    });
-
-    return res.status(200).json({
-      analysis: parsedData,
-      scans_today: newScansCount,
-      is_pro: profile.is_pro
-    });
-
-  } catch (error) {
-    return res.status(500).json({ error: error.message });
-  }
 }
