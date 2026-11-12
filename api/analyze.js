@@ -1,12 +1,11 @@
 export default async function handler(req, res) {
-  // Permitir solo peticiones POST
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
     const { imageBase64, mimeType } = req.body;
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = process.env.GROQ_API_KEY;
 
     if (!imageBase64) {
       return res.status(400).json({ error: 'No se ha proporcionado ninguna imagen.' });
@@ -26,36 +25,43 @@ export default async function handler(req, res) {
       "summary": "Resumen ejecutivo para voz."
     }`;
 
-    // Petición segura desde el backend de Vercel hacia Gemini
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`, {
+    // Petición al modelo multimodal de Groq (ej. Llama 3.2 Vision)
+    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
+      },
       body: JSON.stringify({
-        contents: [{
-          parts: [
-            { text: promptText },
-            { inlineData: { mimeType: mimeType || "image/jpeg", data: imageBase64 } }
-          ]
-        }]
+        model: "llama-3.2-90b-vision-preview",
+        messages: [
+          {
+            role: "user",
+            content: [
+              { type: "text", text: promptText },
+              {
+                type: "image_url",
+                image_url: {
+                  url: `data:${mimeType || "image/jpeg"};base64,${imageBase64}`
+                }
+              }
+            ]
+          }
+        ],
+        temperature: 0.1,
+        response_format: { type: "json_object" }
       })
     });
 
     const data = await response.json();
 
     if (data.error) {
-      return res.status(500).json({ error: data.error.message || "Error en la API de Google" });
+      return res.status(500).json({ error: data.error.message || "Error en la API de Groq" });
     }
 
-    const textResponse = data.candidates[0].content.parts[0].text;
-    let cleanJson = textResponse.replace(/```json/g, '').replace(/```/g, '').trim();
-    
-    const firstBrace = cleanJson.indexOf('{');
-    const lastBrace = cleanJson.lastIndexOf('}');
-    if (firstBrace !== -1 && lastBrace !== -1) {
-      cleanJson = cleanJson.substring(firstBrace, lastBrace + 1);
-    }
+    const textResponse = data.choices[0].message.content;
+    const parsedData = JSON.parse(textResponse);
 
-    const parsedData = JSON.parse(cleanJson);
     return res.status(200).json(parsedData);
 
   } catch (error) {
