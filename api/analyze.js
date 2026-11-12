@@ -31,7 +31,6 @@ module.exports = async function handler(req, res) {
             return res.status(401).json({ error: 'Usuario no autenticado.' });
         }
 
-        // Buscar o asegurar el perfil del usuario mediante upsert seguro
         let { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('*')
@@ -87,7 +86,7 @@ module.exports = async function handler(req, res) {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                model: 'meta-llama/llama-3.2-11b-vision-preview',
+                model: 'llama-3.2-11b-vision-instruct',
                 messages: [
                     {
                         role: 'user',
