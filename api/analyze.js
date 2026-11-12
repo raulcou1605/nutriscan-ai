@@ -1,11 +1,10 @@
-import { createClient } from '@supabase/supabase-js';
+const { createClient } = require('@supabase/supabase-js');
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 const groqApiKey = process.env.GROQ_API_KEY;
 
-export default async function handler(req, res) {
-    // Asegurar que siempre se responda en JSON
+module.exports = async function handler(req, res) {
     res.setHeader('Content-Type', 'application/json');
 
     if (req.method !== 'POST') {
@@ -29,7 +28,6 @@ export default async function handler(req, res) {
             return res.status(401).json({ error: 'Sesión inválida o expirada. Inicia sesión nuevamente.' });
         }
 
-        // Obtener perfil o crearlo si no existe
         let { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('*')
@@ -44,16 +42,14 @@ export default async function handler(req, res) {
                 .single();
             
             if (createError) {
-                return res.status(500).json({ error: 'Error al inicializar el perfil de usuario en la base de datos.' });
+                return res.status(500).json({ error: 'Error al inicializar el perfil de usuario.' });
             }
             profile = newProfile;
         }
 
-        // Validación de límites de escaneo
         if (!profile.is_pro) {
             const today = new Date().toISOString().split('T')[0];
             const lastScanDate = profile.last_scan_date ? profile.last_scan_date.split('T')[0] : '';
-
             let scansToday = profile.scans_today || 0;
 
             if (lastScanDate !== today) {
@@ -80,7 +76,6 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'No se proporcionó ninguna imagen' });
         }
 
-        // Llamada a la IA de Groq
         const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -140,7 +135,7 @@ export default async function handler(req, res) {
         });
 
     } catch (err) {
-        console.error('Error detallado en analyze.js:', err);
-        return res.status(500).json({ error: err.message || 'Error interno al procesar el análisis' });
+        console.error('Error en analyze.js:', err);
+        return res.status(500).json({ error: err.message || 'Error interno en el servidor' });
     }
-}
+};
