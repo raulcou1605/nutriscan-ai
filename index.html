@@ -44,7 +44,6 @@
             <!-- TARJETA PRINCIPAL DE ESCANEO -->
             <div class="bg-white p-6 rounded-3xl shadow-xl border border-slate-100 text-center space-y-6">
                 
-                <!-- Ícono de cámara superior -->
                 <div class="w-16 h-16 mx-auto bg-emerald-500 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/30">
                     <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                 </div>
@@ -66,11 +65,9 @@
                     </button>
                 </div>
 
-                <!-- Input file oculto para manejar ambos -->
                 <input type="file" id="file-input" accept="image/*" class="hidden" onchange="handleImage(event)">
                 <input type="file" id="camera-input" accept="image/*" capture="environment" class="hidden" onchange="handleImage(event)">
 
-                <!-- Botón de Análisis -->
                 <button onclick="document.getElementById('camera-input').click()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold py-3 rounded-xl transition text-xs border border-slate-200 flex items-center justify-center space-x-2">
                     <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
                     <span>Analizar con IA Real</span>
@@ -119,7 +116,12 @@
     <script>
         const SUPABASE_URL = "https://wintikgwqjkapubzojzl.supabase.co";
         const SUPABASE_ANON_KEY = "sb_publishable_5gsWXX7LmFUhaPIVds_vHA_NCnPu4aw";
-        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        // Inicialización corregida para las nuevas llaves públicas de Supabase
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+            auth: { persistSession: true, autoRefreshToken: true }
+        });
+
         const STRIPE_LINK = "https://buy.stripe.com/8x228teoGc4E2Ic5XxBEA00";
 
         let currentUser = null;
