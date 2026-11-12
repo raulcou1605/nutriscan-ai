@@ -9,7 +9,7 @@
 </head>
 <body class="bg-slate-50 min-h-screen text-slate-800 flex flex-col items-center justify-between p-4">
 
-    <!-- CONTENEDOR DE AUTENTICACIÓN (Se oculta si ya inició sesión) -->
+    <!-- CONTENEDOR DE AUTENTICACIÓN -->
     <div id="auth-container" class="w-full max-w-md bg-white p-8 rounded-2xl shadow-xl my-auto">
         <h1 class="text-2xl font-bold text-center text-emerald-600 mb-2">NutriScan AI</h1>
         <p class="text-center text-slate-500 mb-6 text-sm">Inicia sesión para gestionar tus escaneos gratuitos y tu cuenta PRO.</p>
@@ -35,49 +35,68 @@
             <button onclick="logout()" class="text-xs text-rose-600 font-semibold hover:underline">Cerrar sesión</button>
         </div>
 
-        <h1 class="text-xl font-bold text-emerald-600 mb-1">NutriScan AI</h1>
+        <h1 class="text-2xl font-bold text-emerald-600 mb-1">NutriScan AI</h1>
         <div id="status-badge" class="text-xs px-3 py-1 rounded-full font-semibold mb-4 bg-slate-100 text-slate-600">Verificando estado...</div>
 
         <!-- ZONA DE ESCANEO -->
-        <div id="scanner-box" class="w-full border-2 border-dashed border-slate-300 rounded-xl p-6 text-center cursor-pointer hover:border-emerald-500 transition mb-4">
+        <div class="w-full border-2 border-dashed border-slate-300 rounded-2xl p-6 text-center cursor-pointer hover:border-emerald-500 transition mb-6" onclick="document.getElementById('file-input').click()">
             <input type="file" id="file-input" accept="image/*" class="hidden" onchange="handleImage(event)">
-            <div onclick="document.getElementById('file-input').click()">
-                <p class="text-sm font-medium text-slate-600">Toca para fotografiar o subir producto</p>
-                <span class="text-xs text-slate-400">Analiza etiquetas y riesgos al instante</span>
+            <svg class="w-10 h-10 mx-auto text-emerald-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            <p class="text-sm font-semibold text-slate-700">Toca para fotografiar o subir producto</p>
+            <span class="text-xs text-slate-400">Analiza etiquetas y riesgos al instante</span>
+        </div>
+
+        <div id="loading" class="hidden my-4 text-center text-emerald-600 font-medium text-sm animate-pulse">Analizando producto con IA...</div>
+
+        <!-- RESULTADOS DETALLADOS -->
+        <div id="result-box" class="w-full bg-slate-50 p-5 rounded-2xl hidden space-y-4 shadow-inner text-left">
+            <div class="flex justify-between items-start">
+                <div>
+                    <span id="res-category" class="text-xs font-bold px-2.5 py-1 rounded-full uppercase tracking-wider"></span>
+                    <h2 id="res-name" class="text-lg font-bold text-slate-900 mt-1"></h2>
+                </div>
+                <div id="res-score-badge" class="px-3 py-1 rounded-xl text-white font-bold text-sm"></div>
             </div>
-        </div>
 
-        <div id="result-box" class="w-full bg-slate-50 p-4 rounded-xl hidden text-sm space-y-2">
-            <h2 id="res-name" class="font-bold text-slate-800"></h2>
-            <p id="res-category" class="text-xs font-semibold px-2 py-0.5 rounded inline-block"></p>
-            <p id="res-summary" class="text-slate-600 text-xs"></p>
-        </div>
+            <!-- Sellos de advertencia -->
+            <div id="seals-container" class="flex flex-wrap gap-1.5"></div>
 
-        <div id="loading" class="hidden my-4 text-center text-emerald-600 font-medium text-sm">Analizando con IA...</div>
+            <!-- Ingredientes cuestionables -->
+            <div class="space-y-1">
+                <h4 class="text-xs font-bold uppercase text-rose-600">Ingredientes a considerar:</h4>
+                <ul id="harmful-list" class="text-xs text-slate-600 space-y-1"></ul>
+            </div>
+
+            <!-- Beneficios -->
+            <div class="space-y-1">
+                <h4 class="text-xs font-bold uppercase text-emerald-600">Puntos favorables:</h4>
+                <ul id="benefits-list" class="text-xs text-slate-600 space-y-1"></ul>
+            </div>
+
+            <!-- Resumen -->
+            <p id="res-summary" class="text-xs text-slate-700 bg-white p-3 rounded-xl border border-slate-200"></p>
+        </div>
     </div>
 
     <!-- MODAL DE LÍMITE ALCANZADO / PAGO -->
     <div id="paywall-modal" class="fixed inset-0 bg-black/60 hidden items-center justify-center p-4 z-50">
-        <div class="bg-white max-w-sm w-full p-6 rounded-2xl text-center space-y-4">
+        <div class="bg-white max-w-sm w-full p-6 rounded-2xl text-center space-y-4 shadow-2xl">
             <h3 class="text-xl font-bold text-slate-800">¡Límite diario alcanzado!</h3>
             <p class="text-xs text-slate-600">Has consumido tus 3 escaneos gratuitos de hoy. Pásate a NutriScan PRO para escaneos ilimitados por solo $2.99 USD/mes.</p>
-            <button onclick="subscribePRO()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-xl transition">Suscribirse a PRO ($2.99/mo)</button>
+            <button onclick="subscribePRO()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-xl transition shadow-lg shadow-emerald-600/30">Suscribirse a PRO ($2.99/mo)</button>
             <button onclick="closePaywall()" class="text-xs text-slate-400 hover:underline">Cerrar</button>
         </div>
     </div>
 
     <script>
-        // CONFIGURA TUS CREDENCIALES DE SUPABASE Y STRIPE AQUÍ
         const SUPABASE_URL = "https://wintikgwqjkapubzojzl.supabase.co";
-        const SUPABASE_ANON_KEY = "sb_publishable_5gsWXX7LmFUhaPIVds_vhA_NCnPu4aw";
+        const SUPABASE_ANON_KEY = "sb_publishable_5gsWXX7LmFUhaPIVds_vHA_NCnPu4aw";
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-        const STRIPE_LINK = "https://buy.stripe.com/8x228teoGc4E2Ic5XxbEA00";
+        const STRIPE_LINK = "https://buy.stripe.com/8x228teoGc4E2Ic5XxBEA00";
 
         let currentUser = null;
 
         window.addEventListener('DOMContentLoaded', async () => {
-            // Verificar si regresa de Stripe con éxito
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('pro') === 'success') {
                 const session = (await supabaseClient.auth.getSession()).data.session;
@@ -172,10 +191,30 @@
 
                     if (!response.ok) throw new Error(data.error || 'Error al analizar');
 
-                    document.getElementById('res-name').textContent = data.analysis.name;
-                    document.getElementById('res-category').textContent = data.analysis.category;
-                    document.getElementById('res-category').className = `text-xs font-semibold px-2 py-0.5 rounded inline-block ${data.analysis.categoryClass}`;
-                    document.getElementById('res-summary').textContent = data.analysis.summary;
+                    const a = data.analysis;
+                    document.getElementById('res-name').textContent = a.name;
+                    
+                    const catEl = document.getElementById('res-category');
+                    catEl.textContent = a.category;
+                    catEl.className = `text-xs font-bold px-2.5 py-1 rounded-full uppercase tracking-wider ${a.categoryClass}`;
+
+                    const scoreBadge = document.getElementById('res-score-badge');
+                    scoreBadge.textContent = `${a.score}/100`;
+                    scoreBadge.className = `px-3 py-1 rounded-xl text-white font-bold text-sm ${a.scoreBg}`;
+
+                    // Sellos
+                    const sealsContainer = document.getElementById('seals-container');
+                    sealsContainer.innerHTML = (a.seals || []).map(s => `<span class="bg-red-50 text-red-700 border border-red-200 text-[10px] font-bold px-2 py-0.5 rounded">${s}</span>`).join('');
+
+                    // Dañinos
+                    const harmfulList = document.getElementById('harmful-list');
+                    harmfulList.innerHTML = (a.harmful || []).map(h => `<li>• <b>${h.name}:</b> ${h.damage}</li>`).join('');
+
+                    // Beneficios
+                    const benefitsList = document.getElementById('benefits-list');
+                    benefitsList.innerHTML = (a.benefits || []).map(b => `<li>• ${b.text}</li>`).join('');
+
+                    document.getElementById('res-summary').textContent = a.summary;
                     document.getElementById('result-box').classList.remove('hidden');
 
                     if (!data.is_pro) {
