@@ -1,10 +1,6 @@
-const { createClient } = require('@supabase/supabase-js');
+import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
-const groqApiKey = process.env.GROQ_API_KEY;
-
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
     res.setHeader('Content-Type', 'application/json');
 
     if (req.method !== 'POST') {
@@ -12,20 +8,27 @@ module.exports = async function handler(req, res) {
     }
 
     try {
+        const supabaseUrl = process.env.SUPABASE_URL;
+        const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+        const groqApiKey = process.env.GROQ_API_KEY;
+
+        if (!supabaseUrl || !supabaseAnonKey || !groqApiKey) {
+            return res.status(500).json({ error: 'Faltan variables de entorno en el servidor de Vercel.' });
+        }
+
         const authHeader = req.headers.authorization;
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            return res.status(401).json({ error: 'Sesión inválida o expirada. Inicia sesión nuevamente.' });
+            return res.status(401).json({ error: 'Sesión inválida o expirada.' });
         }
 
         const token = authHeader.split(' ')[1];
-        
         const supabase = createClient(supabaseUrl, supabaseAnonKey, {
             global: { headers: { Authorization: `Bearer ${token}` } }
         });
 
         const { data: { user }, error: userError } = await supabase.auth.getUser(token);
         if (userError || !user) {
-            return res.status(401).json({ error: 'Sesión inválida o expirada. Inicia sesión nuevamente.' });
+            return res.status(401).json({ error: 'Usuario no autenticado o sesión expirada.' });
         }
 
         let { data: profile, error: profileError } = await supabase
@@ -42,7 +45,7 @@ module.exports = async function handler(req, res) {
                 .single();
             
             if (createError) {
-                return res.status(500).json({ error: 'Error al inicializar el perfil de usuario.' });
+                return res.status(500).json({ error: 'Error al crear perfil de usuario.' });
             }
             profile = newProfile;
         }
@@ -73,7 +76,7 @@ module.exports = async function handler(req, res) {
 
         const { imageBase64, mimeType } = req.body;
         if (!imageBase64) {
-            return res.status(400).json({ error: 'No se proporcionó ninguna imagen' });
+            return res.status(400).json({ error: 'No se proporcionó ninguna imagen.' });
         }
 
         const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -119,7 +122,7 @@ module.exports = async function handler(req, res) {
 
         const groqData = await groqResponse.json();
         if (!groqResponse.ok) {
-            throw new Error(groqData.error?.message || 'Error al comunicarse con la IA de Groq');
+            return res.status(500).json({ error: groqData.error?.message || 'Error en la API de Groq.' });
         }
 
         let rawContent = groqData.choices[0].message.content.trim();
@@ -135,7 +138,7 @@ module.exports = async function handler(req, res) {
         });
 
     } catch (err) {
-        console.error('Error en analyze.js:', err);
-        return res.status(500).json({ error: err.message || 'Error interno en el servidor' });
+        console.error('Error crítico capturado:', err);
+        return res.status(500).json({ error: err.message || 'Error interno en el servidor.' });
     }
-};
+}
