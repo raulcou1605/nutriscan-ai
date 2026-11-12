@@ -8,6 +8,6 @@
   },
   "devDependencies": {},
   "engines": {
-    "node": "18.x"
+    "node": "26.x"
   }
 }
