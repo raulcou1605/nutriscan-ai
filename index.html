@@ -28,7 +28,7 @@
         <p id="auth-error" class="text-red-500 text-xs text-center mt-3 hidden"></p>
     </div>
 
-    <!-- CONTENEDOR PRINCIPAL DE LA PWA (Oculto hasta iniciar sesión) -->
+    <!-- CONTENEDOR PRINCIPAL DE LA PWA -->
     <div id="app-container" class="w-full max-w-md hidden flex flex-col items-center">
         
         <!-- BARRA SUPERIOR VERDE -->
@@ -53,7 +53,6 @@
                     <p class="text-xs text-slate-400 mt-1">Identifica cualquier alimento, lata o etiqueta</p>
                 </div>
 
-                <!-- Botones de Cámara y Galería separados -->
                 <div class="grid grid-cols-2 gap-3">
                     <button onclick="triggerCamera()" class="flex items-center justify-center space-x-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-4 rounded-xl shadow-md transition text-sm">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
@@ -76,8 +75,13 @@
 
             <div id="loading" class="hidden text-center text-emerald-600 font-medium text-sm animate-pulse">Analizando producto con IA...</div>
 
-            <!-- RESULTADOS DETALLADOS -->
+            <!-- RESULTADOS DETALLADOS CON IMAGEN -->
             <div id="result-box" class="w-full bg-white p-6 rounded-3xl shadow-xl hidden space-y-4 border border-slate-100 text-left">
+                <!-- Miniatura de la foto -->
+                <div class="w-full h-48 bg-slate-100 rounded-2xl overflow-hidden shadow-inner flex items-center justify-center">
+                    <img id="res-img" src="" alt="Producto escaneado" class="w-full h-full object-cover">
+                </div>
+
                 <div class="flex justify-between items-start">
                     <div>
                         <span id="res-category" class="text-xs font-bold px-2.5 py-1 rounded-full uppercase tracking-wider"></span>
@@ -115,8 +119,7 @@
 
     <script>
         const SUPABASE_URL = "https://wintikgwqjkapubzojzl.supabase.co";
-        // Llave anon/public clásica de Supabase
-        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndpbnRpa2d3cWprYXB1YnpvanpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ1MDY4NjcsImV4cCI6MjExMDA4Mjg2N30.stWdAZkWI1SErIyIUWXsEBZVjGv6pyTfnFryfq-50v0"; 
+        const SUPABASE_ANON_KEY = "TU_LLAVE_ANON_CLASICA_AQUI"; // Reemplaza con tu llave anon real
         
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         const STRIPE_LINK = "https://buy.stripe.com/8x228teoGc4E2Ic5XxBEA00";
@@ -197,6 +200,10 @@
             const reader = new FileReader();
             reader.onload = async function() {
                 const base64String = reader.result.split(',')[1];
+                
+                // Mostrar la imagen seleccionada/tomada de inmediato en la UI
+                document.getElementById('res-img').src = reader.result;
+
                 document.getElementById('loading').classList.remove('hidden');
                 document.getElementById('result-box').classList.add('hidden');
 
