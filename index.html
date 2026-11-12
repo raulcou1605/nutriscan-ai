@@ -2,390 +2,200 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NutriScan AI - Escáner Nutricional Inteligente</title>
-    <meta name="theme-color" content="#10b981">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="NutriScan">
-    <link rel="manifest" href="manifest.json">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NutriScan AI</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-        body { font-family: 'Plus Jakarta Sans', sans-serif; }
-        .gradient-bg { background: linear-gradient(135deg, #059669 0%, #10b981 50%, #34d399 100%); }
-        .glass-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
-        .pulse-ring { animation: pulse-ring 2s infinite; }
-        @keyframes pulse-ring {
-            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-            70% { transform: scale(1); box-shadow: 0 0 0 15px rgba(16, 185, 129, 0); }
-            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
-        }
-    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col max-w-md mx-auto shadow-2xl overflow-x-hidden relative">
+<body class="bg-slate-50 min-h-screen text-slate-800 flex flex-col items-center justify-between p-4">
 
-    <!-- Header / Navbar -->
-    <header class="gradient-bg text-white px-6 pt-8 pb-6 rounded-b-3xl shadow-lg relative overflow-hidden">
-        <div class="absolute -right-10 -top-10 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
-        <div class="flex justify-between items-center relative z-10">
-            <div>
-                <span id="userStatusBadge" class="bg-white/20 text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wider backdrop-blur-md">Plan Gratuito</span>
-                <h1 class="text-3xl font-extrabold mt-1 tracking-tight">NutriScan <span class="text-emerald-200">AI</span></h1>
-            </div>
-            <div class="flex gap-2">
-                <button onclick="openHistory()" class="w-11 h-11 bg-white/20 hover:bg-white/30 rounded-2xl flex items-center justify-center backdrop-blur-md transition active:scale-95 shadow-sm" title="Historial">
-                    <i class="fa-solid fa-clock-rotate-left text-lg"></i>
-                </button>
-                <button onclick="installPWA()" id="installBtn" class="hidden w-11 h-11 bg-amber-400 text-slate-900 rounded-2xl flex items-center justify-center shadow-md active:scale-95 font-bold" title="Instalar App">
-                    <i class="fa-solid fa-download"></i>
-                </button>
-            </div>
-        </div>
+    <!-- CONTENEDOR DE AUTENTICACIÓN (Se oculta si ya inició sesión) -->
+    <div id="auth-container" class="w-full max-w-md bg-white p-8 rounded-2xl shadow-xl my-auto">
+        <h1 class="text-2xl font-bold text-center text-emerald-600 mb-2">NutriScan AI</h1>
+        <p class="text-center text-slate-500 mb-6 text-sm">Inicia sesión para gestionar tus escaneos gratuitos y tu cuenta PRO.</p>
         
-        <div class="mt-4 bg-white/10 backdrop-blur-md rounded-2xl p-3 flex justify-between items-center text-xs">
-            <span class="text-emerald-100 font-medium"><i class="fa-solid fa-bolt text-amber-300"></i> Escaneos de hoy:</span>
-            <span id="scanCounterText" class="font-bold bg-white text-emerald-800 px-2.5 py-0.5 rounded-full">3 restantes</span>
-        </div>
-    </header>
-
-    <!-- Main Container -->
-    <main class="flex-1 px-4 py-6 pb-24 space-y-6">
-
-        <!-- Selector / Cámara Box -->
-        <div class="glass-card rounded-3xl p-5 border border-slate-100 shadow-xl relative overflow-hidden">
-            <div class="flex flex-col items-center justify-center border-2 border-dashed border-emerald-300 rounded-2xl p-6 bg-emerald-50/50 relative hover:bg-emerald-50 transition group">
-                <div id="uploadPlaceholder" class="text-center w-full">
-                    <div class="w-16 h-16 bg-emerald-500 text-white rounded-2xl mx-auto flex items-center justify-center text-2xl shadow-lg shadow-emerald-500/30 mb-3 group-hover:scale-105 transition transform cursor-pointer" onclick="document.getElementById('cameraInput').click()">
-                        <i class="fa-solid fa-camera"></i>
-                    </div>
-                    <h3 class="font-bold text-slate-700 text-base">Sube o fotografía tu producto</h3>
-                    <p class="text-xs text-slate-400 mt-1 mb-4">Identifica cualquier alimento, lata o etiqueta</p>
-                    
-                    <div class="flex gap-2 justify-center">
-                        <button type="button" onclick="document.getElementById('cameraInput').click()" class="bg-emerald-600 text-white text-xs font-bold py-2.5 px-4 rounded-xl shadow-md active:scale-95 transition flex items-center gap-2">
-                            <i class="fa-solid fa-camera"></i> Cámara
-                        </button>
-                        <button type="button" onclick="document.getElementById('fileInput').click()" class="bg-slate-200 text-slate-700 text-xs font-bold py-2.5 px-4 rounded-xl shadow-md active:scale-95 transition flex items-center gap-2">
-                            <i class="fa-solid fa-image"></i> Galería
-                        </button>
-                    </div>
-                </div>
-
-                <div id="imagePreviewContainer" class="hidden w-full relative">
-                    <img id="imagePreview" src="" alt="Preview" class="w-full h-52 object-cover rounded-xl shadow-inner">
-                    <button onclick="event.stopPropagation(); resetUpload();" class="absolute top-2 right-2 bg-slate-900/70 text-white w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-md">
-                        <i class="fa-solid fa-xmark"></i>
-                    </button>
-                </div>
-
-                <input type="file" id="cameraInput" accept="image/*" capture="environment" class="hidden" onchange="handleImageSelect(event)">
-                <input type="file" id="fileInput" accept="image/*" class="hidden" onchange="handleImageSelect(event)">
-            </div>
-
-            <button id="analyzeBtn" onclick="checkScanLimitAndAnalyze()" disabled class="w-full mt-4 bg-slate-200 text-slate-400 font-bold py-3.5 px-4 rounded-2xl shadow-sm transition flex items-center justify-center gap-2 cursor-not-allowed">
-                <i class="fa-solid fa-wand-magic-sparkles"></i> Analizar con IA Real
-            </button>
-        </div>
-
-        <!-- Loader -->
-        <div id="loadingBox" class="hidden glass-card rounded-3xl p-8 text-center border border-slate-100 shadow-xl space-y-4">
-            <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full mx-auto flex items-center justify-center text-2xl pulse-ring">
-                <i class="fa-solid fa-brain"></i>
+        <form id="auth-form" class="space-y-4">
+            <div>
+                <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Correo electrónico</label>
+                <input type="email" id="auth-email" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none">
             </div>
             <div>
-                <h3 class="font-bold text-lg text-slate-800">Gemini IA analizando producto...</h3>
-                <p class="text-xs text-slate-500 mt-1">Reconociendo ingredientes, aditivos y riesgos</p>
+                <label class="block text-xs font-semibold uppercase text-slate-600 mb-1">Contraseña</label>
+                <input type="password" id="auth-password" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none">
             </div>
-        </div>
-
-        <!-- Resultados -->
-        <div id="resultsContainer" class="hidden space-y-5">
-            <div class="glass-card rounded-3xl p-5 border border-slate-100 shadow-xl flex items-center justify-between">
-                <div>
-                    <span id="productCategory" class="text-xs font-bold px-2.5 py-1 rounded-full uppercase">Alimento</span>
-                    <h2 id="productName" class="text-xl font-extrabold text-slate-900 mt-1">Producto</h2>
-                    <p id="productSubtitle" class="text-xs text-slate-500 mt-0.5">Evaluación general</p>
-                </div>
-                <div class="text-center relative">
-                    <div id="scoreCircle" class="w-16 h-16 rounded-2xl flex items-center justify-center text-white font-extrabold text-xl shadow-lg">
-                        <span id="healthScore">0</span>
-                    </div>
-                    <span class="text-[10px] font-bold text-slate-400 uppercase block mt-1">Score / 100</span>
-                </div>
-            </div>
-
-            <button onclick="speakSummary()" class="w-full bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold py-3 px-4 rounded-2xl border border-emerald-200 flex items-center justify-center gap-2 transition active:scale-95 shadow-sm">
-                <i class="fa-solid fa-volume-high text-emerald-600"></i> Escuchar Resumen Nutricional
-            </button>
-
-            <div id="warningSeals" class="grid grid-cols-2 gap-2"></div>
-
-            <div class="glass-card rounded-3xl p-5 border border-slate-100 shadow-xl space-y-3">
-                <h3 class="font-extrabold text-slate-800 flex items-center gap-2 text-base">
-                    <i class="fa-solid fa-triangle-exclamation text-rose-500"></i> Ingredientes Nocivos
-                </h3>
-                <div id="harmfulList" class="space-y-3"></div>
-            </div>
-
-            <div class="glass-card rounded-3xl p-5 border border-slate-100 shadow-xl space-y-3">
-                <h3 class="font-extrabold text-slate-800 flex items-center gap-2 text-base">
-                    <i class="fa-solid fa-heart-pulse text-emerald-500"></i> Beneficios Nutricionales
-                </h3>
-                <div id="benefitsList" class="space-y-2"></div>
-            </div>
-        </div>
-
-    </main>
-
-    <!-- Modal de Pago / Suscripción -->
-    <div id="paywallModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl text-center space-y-4 relative">
-            <button onclick="closePaywall()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
-            <div class="w-16 h-16 bg-gradient-to-tr from-amber-400 to-amber-200 text-slate-900 rounded-3xl mx-auto flex items-center justify-center text-3xl shadow-lg shadow-amber-400/30">
-                <i class="fa-solid fa-crown"></i>
-            </div>
-            <div>
-                <h3 class="font-extrabold text-xl text-slate-900">¡Límite diario alcanzado!</h3>
-                <p class="text-xs text-slate-500 mt-1">Has usado tus 3 escaneos gratuitos de hoy. Pásate a PRO para continuar.</p>
-            </div>
-            <div class="py-2"><span class="text-3xl font-extrabold text-slate-900">$35 MXN</span><span class="text-xs text-slate-400">/ mes</span></div>
-            <button onclick="subscribePRO()" class="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-extrabold py-3.5 px-4 rounded-2xl shadow-lg shadow-emerald-500/30 transition">Obtener NutriScan PRO</button>
-        </div>
+            <button type="submit" id="auth-btn" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-xl transition">Iniciar Sesión / Registrarse</button>
+        </form>
+        <p id="auth-error" class="text-red-500 text-xs text-center mt-3 hidden"></p>
     </div>
 
-    <!-- Modal Historial -->
-    <div id="historyModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
-        <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl max-h-[80vh] flex flex-col shadow-2xl">
-            <div class="p-5 border-b border-slate-100 flex justify-between items-center">
-                <h3 class="font-extrabold text-lg text-slate-800">Historial de Escaneos</h3>
-                <button onclick="closeHistory()" class="w-8 h-8 bg-slate-100 text-slate-600 rounded-full flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
+    <!-- CONTENEDOR PRINCIPAL DE LA PWA (Oculto hasta iniciar sesión) -->
+    <div id="app-container" class="w-full max-w-md bg-white p-6 rounded-2xl shadow-xl hidden flex flex-col items-center">
+        <div class="w-full flex justify-between items-center mb-4">
+            <span id="user-email-display" class="text-xs text-slate-500 font-medium truncate max-w-[200px]"></span>
+            <button onclick="logout()" class="text-xs text-rose-600 font-semibold hover:underline">Cerrar sesión</button>
+        </div>
+
+        <h1 class="text-xl font-bold text-emerald-600 mb-1">NutriScan AI</h1>
+        <div id="status-badge" class="text-xs px-3 py-1 rounded-full font-semibold mb-4 bg-slate-100 text-slate-600">Verificando estado...</div>
+
+        <!-- ZONA DE ESCANEO -->
+        <div id="scanner-box" class="w-full border-2 border-dashed border-slate-300 rounded-xl p-6 text-center cursor-pointer hover:border-emerald-500 transition mb-4">
+            <input type="file" id="file-input" accept="image/*" class="hidden" onchange="handleImage(event)">
+            <div onclick="document.getElementById('file-input').click()">
+                <p class="text-sm font-medium text-slate-600">Toca para fotografiar o subir producto</p>
+                <span class="text-xs text-slate-400">Analiza etiquetas y riesgos al instante</span>
             </div>
-            <div id="historyList" class="p-5 overflow-y-auto space-y-3 flex-1"></div>
+        </div>
+
+        <div id="result-box" class="w-full bg-slate-50 p-4 rounded-xl hidden text-sm space-y-2">
+            <h2 id="res-name" class="font-bold text-slate-800"></h2>
+            <p id="res-category" class="text-xs font-semibold px-2 py-0.5 rounded inline-block"></p>
+            <p id="res-summary" class="text-slate-600 text-xs"></p>
+        </div>
+
+        <div id="loading" class="hidden my-4 text-center text-emerald-600 font-medium text-sm">Analizando con IA...</div>
+    </div>
+
+    <!-- MODAL DE LÍMITE ALCANZADO / PAGO -->
+    <div id="paywall-modal" class="fixed inset-0 bg-black/60 hidden items-center justify-center p-4 z-50">
+        <div class="bg-white max-w-sm w-full p-6 rounded-2xl text-center space-y-4">
+            <h3 class="text-xl font-bold text-slate-800">¡Límite diario alcanzado!</h3>
+            <p class="text-xs text-slate-600">Has consumido tus 3 escaneos gratuitos de hoy. Pásate a NutriScan PRO para escaneos ilimitados por solo $2.99 USD/mes.</p>
+            <button onclick="subscribePRO()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-xl transition">Suscribirse a PRO ($2.99/mo)</button>
+            <button onclick="closePaywall()" class="text-xs text-slate-400 hover:underline">Cerrar</button>
         </div>
     </div>
 
     <script>
-        const MAX_FREE_SCANS = 3;
-        let currentAnalysisData = null;
-        let selectedImageBase64 = null;
-        let mimeType = "image/jpeg";
+        // CONFIGURA TUS CREDENCIALES DE SUPABASE Y STRIPE AQUÍ
+        const SUPABASE_URL = "https://wintikgwqjkapubzojzl.supabase.co";
+        const SUPABASE_ANON_KEY = "sb_publishable_5gsWXX7LmFUhaPIVds_vhA_NCnPu4aw";
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        function getTodayKey() { return `scans_${new Date().toISOString().slice(0, 10)}`; }
-        function getScansUsedToday() { return parseInt(localStorage.getItem(getTodayKey()) || '0', 10); }
-        function isUserPro() { return localStorage.getItem('nutriscan_is_pro') === 'true'; }
+        const STRIPE_LINK = "https://buy.stripe.com/8x228teoGc4E2Ic5XxbEA00";
 
-        function updateScanUI() {
-            if (isUserPro()) {
-                document.getElementById('scanCounterText').innerText = 'PRO Ilimitado';
-                document.getElementById('userStatusBadge').innerText = 'PRO Activo';
-                document.getElementById('userStatusBadge').className = 'bg-amber-400 text-slate-900 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-sm';
-            } else {
-                const remaining = Math.max(0, MAX_FREE_SCANS - getScansUsedToday());
-                document.getElementById('scanCounterText').innerText = `${remaining} restantes`;
-            }
-        }
+        let currentUser = null;
 
-        function checkScanLimitAndAnalyze() {
-            if (isUserPro() || getScansUsedToday() < MAX_FREE_SCANS) {
-                callGeminiAPI();
-            } else {
-                document.getElementById('paywallModal').classList.remove('hidden');
-            }
-        }
-
-        async function callGeminiAPI() {
-            if (!selectedImageBase64) return alert("Por favor selecciona o toma una foto primero.");
-            
-            document.getElementById('resultsContainer').classList.add('hidden');
-            document.getElementById('loadingBox').classList.remove('hidden');
-
-            try {
-                // Consulta segura a tu propia Serverless Function en Vercel
-                const response = await fetch('/api/analyze', {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        imageBase64: selectedImageBase64,
-                        mimeType: mimeType
-                    })
-                });
-
-                const data = await response.json();
-                
-                if (!response.ok) {
-                    throw new Error(data.error || "Error al procesar la solicitud en el servidor.");
+        window.addEventListener('DOMContentLoaded', async () => {
+            // Verificar si regresa de Stripe con éxito
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('pro') === 'success') {
+                const session = (await supabaseClient.auth.getSession()).data.session;
+                if (session) {
+                    await supabaseClient.from('profiles').update({ is_pro: true }).eq('id', session.user.id);
                 }
+                window.history.replaceState({}, document.title, window.location.pathname);
+                alert("¡Suscripción PRO activada con éxito!");
+            }
 
-                currentAnalysisData = data;
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (session) {
+                currentUser = session.user;
+                showApp();
+            }
+        });
 
-                document.getElementById('loadingBox').classList.add('hidden');
+        document.getElementById('auth-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('auth-email').value;
+            const password = document.getElementById('auth-password').value;
+            const errEl = document.getElementById('auth-error');
+            errEl.classList.add('hidden');
 
-                if (!isUserPro()) {
-                    localStorage.setItem(getTodayKey(), getScansUsedToday() + 1);
-                    // Detectar regreso exitoso desde Stripe y activar PRO
-const urlParams = new URLSearchParams(window.location.search);
-if (urlParams.get('pro') === 'success') {
-    localStorage.setItem('nutriscan_is_pro', 'true');
-    // Limpiar la URL para que no se vea el parámetro
-    window.history.replaceState({}, document.title, window.location.pathname);
-    alert("¡Bienvenido a NutriScan PRO! Ahora tienes escaneos ilimitados.");
-}
-                    updateScanUI();
+            let res = await supabaseClient.auth.signInWithPassword({ email, password });
+            if (res.error) {
+                res = await supabaseClient.auth.signUp({ email, password });
+            }
+
+            if (res.error) {
+                errEl.textContent = res.error.message;
+                errEl.classList.remove('hidden');
+            } else {
+                currentUser = res.data.user;
+                showApp();
+            }
+        });
+
+        async function showApp() {
+            document.getElementById('auth-container').classList.add('hidden');
+            document.getElementById('app-container').classList.remove('hidden');
+            document.getElementById('user-email-display').textContent = currentUser.email;
+
+            const { data } = await supabaseClient.from('profiles').select('*').eq('id', currentUser.id).single();
+            if (data) {
+                const badge = document.getElementById('status-badge');
+                if (data.is_pro) {
+                    badge.textContent = "Plan PRO (Ilimitado)";
+                    badge.className = "text-xs px-3 py-1 rounded-full font-semibold mb-4 bg-emerald-100 text-emerald-800";
+                } else {
+                    badge.textContent = `Escaneos gratuitos hoy: ${data.scans_today || 0}/3`;
+                    badge.className = "text-xs px-3 py-1 rounded-full font-semibold mb-4 bg-amber-100 text-amber-800";
                 }
-
-                renderResults(currentAnalysisData);
-                saveToHistory(currentAnalysisData);
-
-            } catch (error) {
-                document.getElementById('loadingBox').classList.add('hidden');
-                alert("Error de análisis: " + error.message);
-                console.error(error);
             }
         }
 
-        function subscribePRO() {
-            window.location.href = "https://buy.stripe.com/8x228teoGc4E2Ic5XxbEA00";
+        async function logout() {
+            await supabaseClient.auth.signOut();
+            window.location.reload();
         }
 
-        function closePaywall() { document.getElementById('paywallModal').classList.add('hidden'); }
-
-        function handleImageSelect(event) {
+        async function handleImage(event) {
             const file = event.target.files[0];
             if (!file) return;
-            
-            mimeType = file.type || "image/jpeg";
-            const reader = new FileReader();
-            
-            reader.onload = function(e) {
-                const img = new Image();
-                img.onload = function() {
-                    const canvas = document.createElement('canvas');
-                    const MAX_WIDTH = 600;
-                    const MAX_HEIGHT = 600;
-                    let width = img.width;
-                    let height = img.height;
 
-                    if (width > height) {
-                        if (width > MAX_WIDTH) {
-                            height *= MAX_WIDTH / width;
-                            width = MAX_WIDTH;
-                        }
-                    } else {
-                        if (height > MAX_HEIGHT) {
-                            width *= MAX_HEIGHT / height;
-                            height = MAX_HEIGHT;
-                        }
+            const reader = new FileReader();
+            reader.onload = async function() {
+                const base64String = reader.result.split(',')[1];
+                document.getElementById('loading').classList.remove('hidden');
+                document.getElementById('result-box').classList.add('hidden');
+
+                const session = (await supabaseClient.auth.getSession()).data.session;
+                const token = session?.access_token;
+
+                try {
+                    const response = await fetch('/api/analyze', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({ imageBase64: base64String, mimeType: file.type })
+                    });
+
+                    const data = await response.json();
+
+                    if (response.status === 429) {
+                        document.getElementById('paywall-modal').classList.remove('hidden');
+                        document.getElementById('loading').classList.add('hidden');
+                        return;
                     }
 
-                    canvas.width = width;
-                    canvas.height = height;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, width, height);
+                    if (!response.ok) throw new Error(data.error || 'Error al analizar');
 
-                    const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
-                    document.getElementById('imagePreview').src = compressedDataUrl;
-                    selectedImageBase64 = compressedDataUrl.split(',')[1];
+                    document.getElementById('res-name').textContent = data.analysis.name;
+                    document.getElementById('res-category').textContent = data.analysis.category;
+                    document.getElementById('res-category').className = `text-xs font-semibold px-2 py-0.5 rounded inline-block ${data.analysis.categoryClass}`;
+                    document.getElementById('res-summary').textContent = data.analysis.summary;
+                    document.getElementById('result-box').classList.remove('hidden');
 
-                    document.getElementById('uploadPlaceholder').classList.add('hidden');
-                    document.getElementById('imagePreviewContainer').classList.remove('hidden');
-                    const analyzeBtn = document.getElementById('analyzeBtn');
-                    analyzeBtn.disabled = false;
-                    analyzeBtn.className = 'w-full mt-4 bg-emerald-600 text-white font-bold py-3.5 px-4 rounded-2xl shadow-lg shadow-emerald-600/30 transition flex items-center justify-center gap-2';
+                    if (!data.is_pro) {
+                        document.getElementById('status-badge').textContent = `Escaneos gratuitos hoy: ${data.scans_today}/3`;
+                    }
+                } catch (err) {
+                    alert("Error: " + err.message);
+                } finally {
+                    document.getElementById('loading').classList.add('hidden');
                 }
-                img.src = e.target.result;
-            }
+            };
             reader.readAsDataURL(file);
         }
 
-        function resetUpload() {
-            selectedImageBase64 = null;
-            document.getElementById('cameraInput').value = '';
-            document.getElementById('fileInput').value = '';
-            document.getElementById('imagePreviewContainer').classList.add('hidden');
-            document.getElementById('uploadPlaceholder').classList.remove('hidden');
-            const analyzeBtn = document.getElementById('analyzeBtn');
-            analyzeBtn.disabled = true;
-            analyzeBtn.className = 'w-full mt-4 bg-slate-200 text-slate-400 font-bold py-3.5 px-4 rounded-2xl shadow-sm transition flex items-center justify-center gap-2 cursor-not-allowed';
+        function subscribePRO() {
+            window.location.href = STRIPE_LINK;
         }
 
-        function renderResults(data) {
-            document.getElementById('productCategory').innerText = data.category;
-            document.getElementById('productCategory').className = `text-xs font-bold px-2.5 py-1 rounded-full uppercase ${data.categoryClass}`;
-            document.getElementById('productName').innerText = data.name;
-            document.getElementById('productSubtitle').innerText = data.subtitle;
-            document.getElementById('healthScore').innerText = data.score;
-            document.getElementById('scoreCircle').className = `w-16 h-16 rounded-2xl flex items-center justify-center text-white font-extrabold text-xl shadow-lg ${data.scoreBg}`;
-
-            const sealsContainer = document.getElementById('warningSeals');
-            sealsContainer.innerHTML = '';
-            data.seals.forEach(seal => {
-                sealsContainer.innerHTML += `<div class="bg-rose-50 border border-rose-200 text-rose-700 text-[10px] font-extrabold p-2 rounded-xl text-center uppercase tracking-wider flex items-center justify-center gap-1"><i class="fa-solid fa-octagon-exclamation"></i> ${seal}</div>`;
-            });
-
-            const harmfulList = document.getElementById('harmfulList');
-            harmfulList.innerHTML = data.harmful.length === 0 ? `<p class="text-xs text-emerald-600 font-medium"><i class="fa-solid fa-circle-check"></i> Sin aditivos dañinos.</p>` : '';
-            data.harmful.forEach(item => {
-                harmfulList.innerHTML += `<div class="bg-rose-50/60 border border-rose-100 p-3.5 rounded-2xl"><h4 class="font-bold text-slate-800 text-sm">${item.name}</h4><p class="text-xs text-slate-600 mt-1 leading-relaxed">${item.damage}</p></div>`;
-            });
-
-            const benefitsList = document.getElementById('benefitsList');
-            benefitsList.innerHTML = '';
-            data.benefits.forEach(ben => {
-                benefitsList.innerHTML += `<div class="bg-emerald-50/60 border border-emerald-100 p-3.5 rounded-2xl flex items-start gap-2.5"><i class="fa-solid fa-circle-check text-emerald-600 mt-0.5"></i><p class="text-xs text-slate-700 leading-relaxed">${ben.text}</p></div>`;
-            });
-
-            document.getElementById('resultsContainer').classList.remove('hidden');
-            document.getElementById('resultsContainer').scrollIntoView({ behavior: 'smooth' });
-        }
-
-        function speakSummary() {
-            if ('speechSynthesis' in window && currentAnalysisData) {
-                window.speechSynthesis.cancel();
-                let utterance = new SpeechSynthesisUtterance(currentAnalysisData.summary);
-                utterance.lang = 'es-MX';
-                window.speechSynthesis.speak(utterance);
-            }
-        }
-
-        function saveToHistory(item) {
-            let history = JSON.parse(localStorage.getItem('nutriscan_history') || '[]');
-            history.unshift({ ...item, date: new Date().toLocaleDateString() });
-            if (history.length > 10) history.pop();
-            localStorage.setItem('nutriscan_history', JSON.stringify(history));
-        }
-
-        function openHistory() {
-            const historyList = document.getElementById('historyList');
-            let history = JSON.parse(localStorage.getItem('nutriscan_history') || '[]');
-            historyList.innerHTML = history.length === 0 ? `<p class="text-center text-xs text-slate-400 py-6">Sin análisis guardados.</p>` : '';
-            history.forEach(h => {
-                historyList.innerHTML += `<div class="bg-slate-50 border border-slate-100 p-3.5 rounded-2xl flex items-center justify-between"><div><span class="text-[10px] font-bold text-slate-400">${h.date}</span><h4 class="font-bold text-sm text-slate-800">${h.name}</h4></div><span class="font-extrabold text-sm px-2.5 py-1 rounded-xl text-white ${h.scoreBg}">${h.score}</span></div>`;
-            });
-            document.getElementById('historyModal').classList.remove('hidden');
-        }
-
-        function closeHistory() { document.getElementById('historyModal').classList.add('hidden'); }
-
-        let deferredPrompt;
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            document.getElementById('installBtn').classList.remove('hidden');
-        });
-
-        function installPWA() {
-            if (deferredPrompt) {
-                deferredPrompt.prompt();
-                deferredPrompt.userChoice.then(() => { deferredPrompt = null; });
-            }
-        }
-
-        updateScanUI();
-
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js').catch(() => {});
+        function closePaywall() {
+            document.getElementById('paywall-modal').classList.add('hidden');
         }
     </script>
 </body>
