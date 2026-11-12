@@ -86,7 +86,7 @@ module.exports = async function handler(req, res) {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                model: 'llama-3.2-11b-vision-instruct',
+                model: 'llama-3.2-11b-vision',
                 messages: [
                     {
                         role: 'user',
