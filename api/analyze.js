@@ -5,7 +5,7 @@ export default async function handler(req, res) {
 
   try {
     const { imageBase64, mimeType } = req.body;
-    const apiKey = process.env.GROQ_API_KEY;
+    const apiKey = process.env.GEMINI_API_KEY;
 
     if (!imageBase64) {
       return res.status(400).json({ error: 'No se ha proporcionado ninguna imagen.' });
@@ -25,43 +25,36 @@ export default async function handler(req, res) {
       "summary": "Resumen ejecutivo para voz."
     }`;
 
-    // Utilizando un modelo visual actual y compatible de Groq
-    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    // Usando el modelo oficial estable de Google Gemini
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "llama-3.2-11b-vision-preview",
-        messages: [
-          {
-            role: "user",
-            content: [
-              { type: "text", text: promptText },
-              {
-                type: "image_url",
-                image_url: {
-                  url: `data:${mimeType || "image/jpeg"};base64,${imageBase64}`
-                }
-              }
-            ]
-          }
-        ],
-        temperature: 0.1,
-        response_format: { type: "json_object" }
+        contents: [{
+          parts: [
+            { text: promptText },
+            { inlineData: { mimeType: mimeType || "image/jpeg", data: imageBase64 } }
+          ]
+        }]
       })
     });
 
     const data = await response.json();
 
     if (data.error) {
-      return res.status(500).json({ error: data.error.message || "Error en la API de Groq" });
+      return res.status(500).json({ error: data.error.message || "Error en la API de Google" });
     }
 
-    const textResponse = data.choices[0].message.content;
-    const parsedData = JSON.parse(textResponse);
+    const textResponse = data.candidates[0].content.parts[0].text;
+    let cleanJson = textResponse.replace(/```json/g, '').replace(/```/g, '').trim();
+    
+    const firstBrace = cleanJson.indexOf('{');
+    const lastBrace = cleanJson.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace !== -1) {
+      cleanJson = cleanJson.substring(firstBrace, lastBrace + 1);
+    }
 
+    const parsedData = JSON.parse(cleanJson);
     return res.status(200).json(parsedData);
 
   } catch (error) {
