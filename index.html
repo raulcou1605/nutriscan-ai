@@ -224,6 +224,14 @@
 
                 if (!isUserPro()) {
                     localStorage.setItem(getTodayKey(), getScansUsedToday() + 1);
+                    // Detectar regreso exitoso desde Stripe y activar PRO
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get('pro') === 'success') {
+    localStorage.setItem('nutriscan_is_pro', 'true');
+    // Limpiar la URL para que no se vea el parámetro
+    window.history.replaceState({}, document.title, window.location.pathname);
+    alert("¡Bienvenido a NutriScan PRO! Ahora tienes escaneos ilimitados.");
+}
                     updateScanUI();
                 }
 
@@ -238,7 +246,7 @@
         }
 
         function subscribePRO() {
-            window.location.href = "https://buy.stripe.com/test_14A6oJ6WKfgpbgQdcG7ss00";
+            window.location.href = "https://buy.stripe.com/8x228teoGc4E2Ic5XxbEA00";
         }
 
         function closePaywall() { document.getElementById('paywallModal').classList.add('hidden'); }
