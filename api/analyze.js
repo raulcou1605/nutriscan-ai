@@ -25,7 +25,7 @@ export default async function handler(req, res) {
       "summary": "Resumen ejecutivo para voz."
     }`;
 
-    // Petición al modelo multimodal de Groq (ej. Llama 3.2 Vision)
+    // Utilizando un modelo visual actual y compatible de Groq
     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -33,7 +33,7 @@ export default async function handler(req, res) {
         "Authorization": `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: "llama-3.2-90b-vision-preview",
+        model: "llama-3.2-11b-vision-preview",
         messages: [
           {
             role: "user",
