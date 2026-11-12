@@ -1,6 +1,6 @@
-import { createClient } from '@supabase/supabase-js';
+const { createClient } = require('@supabase/supabase-js');
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
     res.setHeader('Content-Type', 'application/json');
 
     if (req.method !== 'POST') {
@@ -13,7 +13,7 @@ export default async function handler(req, res) {
         const groqApiKey = process.env.GROQ_API_KEY;
 
         if (!supabaseUrl || !supabaseAnonKey || !groqApiKey) {
-            return res.status(500).json({ error: 'Faltan variables de entorno en el servidor de Vercel.' });
+            return res.status(500).json({ error: 'Faltan variables de entorno en Vercel.' });
         }
 
         const authHeader = req.headers.authorization;
@@ -28,7 +28,7 @@ export default async function handler(req, res) {
 
         const { data: { user }, error: userError } = await supabase.auth.getUser(token);
         if (userError || !user) {
-            return res.status(401).json({ error: 'Usuario no autenticado o sesión expirada.' });
+            return res.status(401).json({ error: 'Usuario no autenticado.' });
         }
 
         let { data: profile, error: profileError } = await supabase
@@ -45,7 +45,7 @@ export default async function handler(req, res) {
                 .single();
             
             if (createError) {
-                return res.status(500).json({ error: 'Error al crear perfil de usuario.' });
+                return res.status(500).json({ error: 'Error al inicializar el perfil.' });
             }
             profile = newProfile;
         }
@@ -122,7 +122,7 @@ export default async function handler(req, res) {
 
         const groqData = await groqResponse.json();
         if (!groqResponse.ok) {
-            return res.status(500).json({ error: groqData.error?.message || 'Error en la API de Groq.' });
+            return res.status(500).json({ error: groqData.error?.message || 'Error en Groq API.' });
         }
 
         let rawContent = groqData.choices[0].message.content.trim();
@@ -138,7 +138,7 @@ export default async function handler(req, res) {
         });
 
     } catch (err) {
-        console.error('Error crítico capturado:', err);
+        console.error('Error crítico:', err);
         return res.status(500).json({ error: err.message || 'Error interno en el servidor.' });
     }
-}
+};
