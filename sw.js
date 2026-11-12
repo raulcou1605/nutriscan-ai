@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nutriscan-v2';
+const CACHE_NAME = 'nutriscan-v3';
 
 self.addEventListener('install', (e) => {
   self.skipWaiting();
