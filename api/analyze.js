@@ -129,7 +129,7 @@ module.exports = async function handler(req, res) {
                     }
                 ],
                 temperature: 0.2,
-                max_tokens: 1024
+                max_tokens: 800
             })
         });
 
