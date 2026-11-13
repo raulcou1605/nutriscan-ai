@@ -47,7 +47,48 @@
             </div>
             <button onclick="logout()" class="text-xs bg-black/20 hover:bg-black/30 px-3 py-1.5 rounded-full transition">Salir</button>
         </div>
+<!-- PANEL DE PERFIL DE SALUD (PRO) -->
+<div id="health-profile-card" class="w-full max-w-md bg-white rounded-2xl shadow-sm border border-slate-200 p-4 mb-4">
+    <div class="flex items-center justify-between mb-2">
+        <h3 class="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+            🩺 Perfil de Salud Personalizado
+            <span class="text-[10px] uppercase tracking-wider bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-semibold">PRO</span>
+        </h3>
+    </div>
 
+    <!-- Vista para usuarios GRATUITOS -->
+    <div id="health-pro-locked" class="text-xs text-slate-500 bg-slate-50 p-3 rounded-xl border border-dashed border-slate-300">
+        Configura alergias, diabetes, hipertensión u objetivos físicos para recibir alertas personalizadas en cada escaneo. 
+        <button onclick="window.location.href=STRIPE_LINK" class="text-emerald-600 font-semibold underline ml-1">Desbloquear con PRO</button>
+    </div>
+
+    <!-- Formulario activo para usuarios PRO -->
+    <div id="health-pro-form" class="hidden space-y-3 mt-2">
+        <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">Objetivo principal</label>
+            <select id="health-goal" class="w-full text-sm rounded-lg border border-slate-300 p-2 bg-white focus:outline-none focus:border-emerald-500">
+                <option value="general">Alimentación balanceada (General)</option>
+                <option value="perdida_peso">Déficit calórico / Bajar de peso</option>
+                <option value="ganancia_muscular">Alto en proteína / Ganar músculo</option>
+                <option value="diabetes">Control de glucosa / Bajo en azúcar</option>
+                <option value="hipertension">Control de presión / Bajo en sodio</option>
+                <option value="keto">Dieta Cetogénica (Keto / Low Carb)</option>
+            </select>
+        </div>
+
+        <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">Alergias o ingredientes a evitar</label>
+            <input type="text" id="health-notes" placeholder="Ej. Gluten, lactosa, cacahuate, edulcorantes..." 
+                   class="w-full text-sm rounded-lg border border-slate-300 p-2 focus:outline-none focus:border-emerald-500">
+        </div>
+
+        <button id="save-health-btn" onclick="saveHealthProfile()" 
+                class="w-full bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold py-2.5 rounded-lg transition">
+            Guardar preferencias de salud
+        </button>
+        <p id="health-save-msg" class="text-xs text-emerald-600 text-center hidden">¡Perfil actualizado!</p>
+    </div>
+</div>
         <div class="w-full px-4 space-y-6">
             <!-- TARJETA PRINCIPAL DE ESCANEO -->
             <div class="bg-white p-6 rounded-3xl shadow-xl border border-slate-100 text-center space-y-6">
