@@ -111,6 +111,12 @@
                     <p class="text-xs text-slate-400 mt-1">Identifica cualquier alimento, lata o etiqueta</p>
                 </div>
 
+                <!-- SELECTOR DE MODO DE ESCANEO (Exclusivo PRO para Plato Preparado) -->
+                <div class="flex bg-slate-100 p-1 rounded-xl text-xs font-semibold">
+                    <button id="mode-product" onclick="setScanMode('product')" class="flex-1 py-2 rounded-lg bg-white text-emerald-600 shadow-sm transition">🏷️ Producto / Etiqueta</button>
+                    <button id="mode-dish" onclick="setScanMode('dish')" class="flex-1 py-2 rounded-lg text-slate-500 transition">🍽️ Plato / Menú PRO</button>
+                </div>
+
                 <div class="grid grid-cols-2 gap-3">
                     <button onclick="triggerCamera()" class="flex items-center justify-center space-x-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-4 rounded-xl shadow-md transition text-sm">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
@@ -198,7 +204,8 @@
         let currentUser = null;
         let userHealthProfile = { goal: 'general', notes: '' };
         window.isUserPro = false;
-        let userHistoryData = []; // Almacena el historial localmente
+        let userHistoryData = [];
+        let currentScanMode = 'product'; // 'product' o 'dish'
 
         window.addEventListener('DOMContentLoaded', async () => {
             const urlParams = new URLSearchParams(window.location.search);
@@ -267,6 +274,26 @@
             window.location.reload();
         }
 
+        // Control de selección de modo (Restringido para usuarios gratuitos)
+        function setScanMode(mode) {
+            if (mode === 'dish' && !window.isUserPro) {
+                document.getElementById('paywall-modal').classList.remove('hidden');
+                return;
+            }
+
+            currentScanMode = mode;
+            const btnProd = document.getElementById('mode-product');
+            const btnDish = document.getElementById('mode-dish');
+
+            if (mode === 'product') {
+                btnProd.className = "flex-1 py-2 rounded-lg bg-white text-emerald-600 shadow-sm transition";
+                btnDish.className = "flex-1 py-2 rounded-lg text-slate-500 transition";
+            } else {
+                btnDish.className = "flex-1 py-2 rounded-lg bg-white text-emerald-600 shadow-sm transition";
+                btnProd.className = "flex-1 py-2 rounded-lg text-slate-500 transition";
+            }
+        }
+
         function triggerCamera() {
             document.getElementById('camera-input').click();
         }
@@ -300,7 +327,8 @@
                         body: JSON.stringify({ 
                             imageBase64: base64String, 
                             mimeType: file.type,
-                            healthProfile: (window.isUserPro || false) ? userHealthProfile : null 
+                            healthProfile: (window.isUserPro || false) ? userHealthProfile : null,
+                            scanMode: currentScanMode 
                         })
                     });
 
@@ -330,7 +358,6 @@
             reader.readAsDataURL(file);
         }
 
-        // Función reutilizable para mostrar el análisis en pantalla
         function renderAnalysis(a, imgSrc) {
             if (imgSrc) {
                 document.getElementById('res-img').src = imgSrc;
@@ -358,7 +385,6 @@
             document.getElementById('res-summary').textContent = a.summary;
             document.getElementById('result-box').classList.remove('hidden');
 
-            // Desplazar la vista suavemente hacia los resultados
             document.getElementById('result-box').scrollIntoView({ behavior: 'smooth' });
         }
 
@@ -443,7 +469,7 @@
         }
 
         // ==========================================
-        // HISTORIAL DE ESCANEOS PRO (Con selección interactiva)
+        // HISTORIAL DE ESCANEOS PRO
         // ==========================================
         async function loadScanHistory() {
             if (!currentUser || !window.isUserPro) return;
@@ -465,7 +491,7 @@
                 return;
             }
 
-            userHistoryData = data || []; // Guardamos los datos localmente
+            userHistoryData = data || [];
 
             if (userHistoryData.length === 0) {
                 historyList.innerHTML = `<p class="text-slate-400 text-center py-2">Aún no tienes productos escaneados en tu historial.</p>`;
@@ -488,11 +514,10 @@
             `).join('');
         }
 
-        // Función para cargar el producto seleccionado del historial a la vista principal
         function selectHistoryItem(index) {
             const item = userHistoryData[index];
             if (!item) return;
-            renderAnalysis(item, null); // Renderiza los datos guardados sin foto nueva
+            renderAnalysis(item, null);
         }
     </script>
 </body>
