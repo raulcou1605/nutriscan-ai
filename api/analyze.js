@@ -50,6 +50,17 @@ module.exports = async function handler(req, res) {
             profile = newProfile;
         }
 
+        // 1. Extraemos imageBase64, mimeType, healthProfile y el scanMode enviado desde el cliente
+        const { imageBase64, mimeType, healthProfile, scanMode } = req.body;
+        if (!imageBase64) {
+            return res.status(400).json({ error: 'No se proporcionó ninguna imagen.' });
+        }
+
+        // Validación de seguridad: El modo plato preparado es estrictamente exclusivo para usuarios PRO
+        if (scanMode === 'dish' && !profile.is_pro) {
+            return res.status(403).json({ error: 'El modo de platos preparados es exclusivo para usuarios PRO.' });
+        }
+
         if (!profile.is_pro) {
             const today = new Date().toISOString().split('T')[0];
             const lastScanDate = profile.last_scan_date ? profile.last_scan_date.split('T')[0] : '';
@@ -74,10 +85,12 @@ module.exports = async function handler(req, res) {
             profile.scans_today = scansToday + 1;
         }
 
-        // 1. Extraemos imageBase64, mimeType y el healthProfile enviado desde el cliente
-        const { imageBase64, mimeType, healthProfile } = req.body;
-        if (!imageBase64) {
-            return res.status(400).json({ error: 'No se proporcionó ninguna imagen.' });
+        // Preparamos el objetivo del análisis según el modo seleccionado
+        let analysisGoalText = "";
+        if (scanMode === 'dish') {
+            analysisGoalText = `Analiza este plato de comida preparado o menú de restaurante. Estima visualmente las porciones, calorías aproximadas y distribución de macronutrientes (Proteínas, Grasas, Carbohidratos).`;
+        } else {
+            analysisGoalText = `Analiza esta etiqueta o producto alimenticio empacado.`;
         }
 
         // 2. Preparamos el prompt personalizado si el usuario es PRO y configuró su perfil
@@ -89,7 +102,7 @@ module.exports = async function handler(req, res) {
     - Objetivo nutricional: ${healthProfile.goal}
     - Alergias o restricciones estrictas: ${healthProfile.notes || "Ninguna especificada"}
     
-    INSTRUCCIÓN ADICIONAL: Evalúa la tabla nutrimental e ingredientes específicamente bajo este perfil. Si el producto contiene algún alérgeno mencionado o contradice su objetivo (ej. alto sodio para hipertensión, alto azúcar para diabetes), refléjalo con claridad dentro del resumen o puntos de cuidado.`;
+    INSTRUCCIÓN ADICIONAL: Evalúa el contenido específicamente bajo este perfil. Si contiene alérgenos o contradice su objetivo (ej. exceso de carbohidratos para diabetes o sodio para hipertensión), refléjalo con claridad dentro del resumen o puntos de cuidado.`;
         }
 
         const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -106,17 +119,17 @@ module.exports = async function handler(req, res) {
                         content: [
                             {
                                 type: 'text',
-                                text: `Analiza esta etiqueta o producto alimenticio. Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin texto adicional, sin bloques de código markdown como \`\`\`) con esta estructura exacta:
+                                text: `${analysisGoalText} Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin texto adicional, sin bloques de código markdown como \`\`\`) con esta estructura exacta:
 {
-  "name": "Nombre del producto",
-  "category": "Categoría (ej. Ultraprocesado, Saludable, Bebida)",
-  "categoryClass": "bg-red-100 text-red-800",
-  "score": 75,
-  "scoreBg": "bg-amber-500",
-  "seals": ["Exceso Sodio", "Exceso Azúcares"],
-  "harmful": [{"name": "Ingrediente", "damage": "Efecto negativo"}],
-  "benefits": [{"text": "Punto favorable"}],
-  "summary": "Resumen breve del análisis general."
+  "name": "Nombre del platillo o producto",
+  "category": "Categoría (ej. Comida Preparada, Ultraprocesado, Saludable)",
+  "categoryClass": "bg-emerald-100 text-emerald-800",
+  "score": 80,
+  "scoreBg": "bg-emerald-500",
+  "seals": ["Alto en Proteína", "Calorías Estimadas: ~450 kcal"],
+  "harmful": [{"name": "Ingrediente o porción", "damage": "Efecto a considerar"}],
+  "benefits": [{"text": "Punto nutricional favorable"}],
+  "summary": "Resumen nutricional, calorías aproximadas y desglose de macros."
 }${personalizationPrompt}`
                             },
                             {
