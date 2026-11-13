@@ -135,6 +135,62 @@
                     <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
                     <span>Analizar con IA Real</span>
                 </button>
+
+                <!-- BOTÓN PARA ACCEDER AL MODO VERSUS (PRO) -->
+                <div class="pt-2 border-t border-slate-100">
+                    <button onclick="toggleVersusMode()" class="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-semibold py-2.5 rounded-xl transition text-xs shadow-md flex items-center justify-center gap-1.5">
+                        ⚡ Modo Versus (Comparar 2 Productos) <span class="bg-white/25 px-1.5 py-0.5 rounded text-[9px] uppercase">PRO</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- CONTENEDOR OCULTO DEL MODAL / VISTA VERSUS -->
+            <div id="versus-container" class="w-full bg-white p-6 rounded-3xl shadow-xl border border-indigo-100 hidden space-y-4 text-left">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-sm font-bold text-indigo-900 flex items-center gap-1">⚡ Comparador Versus</h3>
+                    <button onclick="toggleVersusMode()" class="text-xs text-slate-400 hover:underline">Cerrar</button>
+                </div>
+                <p class="text-xs text-slate-500">Sube la foto de los dos productos que deseas comparar cara a cara:</p>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="border border-dashed border-indigo-300 p-3 rounded-xl text-center cursor-pointer bg-indigo-50/50" onclick="document.getElementById('file-versus-1').click()">
+                        <img id="preview-v1" class="w-full h-24 object-cover rounded-lg mb-1 hidden" alt="Producto A">
+                        <span id="label-v1" class="text-[11px] font-semibold text-indigo-600">+ Foto Producto A</span>
+                    </div>
+                    <div class="border border-dashed border-indigo-300 p-3 rounded-xl text-center cursor-pointer bg-indigo-50/50" onclick="document.getElementById('file-versus-2').click()">
+                        <img id="preview-v2" class="w-full h-24 object-cover rounded-lg mb-1 hidden" alt="Producto B">
+                        <span id="label-v2" class="text-[11px] font-semibold text-indigo-600">+ Foto Producto B</span>
+                    </div>
+                </div>
+
+                <input type="file" id="file-versus-1" accept="image/*" class="hidden" onchange="handleVersusImage(1, event)">
+                <input type="file" id="file-versus-2" accept="image/*" class="hidden" onchange="handleVersusImage(2, event)">
+
+                <button id="btn-run-versus" onclick="runVersusComparison()" disabled class="w-full bg-slate-300 text-white font-semibold py-3 rounded-xl transition text-xs shadow-sm cursor-not-allowed">
+                    Analizar y Comparar
+                </button>
+            </div>
+
+            <!-- RESULTADO DEL VERSUS -->
+            <div id="versus-result-box" class="w-full bg-white p-6 rounded-3xl shadow-xl hidden space-y-4 border border-indigo-100 text-left">
+                <div class="bg-indigo-50 border border-indigo-200 p-3 rounded-2xl text-center">
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-600">🏆 Opción Ganadora Recomendada</span>
+                    <h2 id="vs-winner-name" class="text-base font-bold text-indigo-900 mt-0.5"></h2>
+                    <p id="vs-winner-reason" class="text-xs text-slate-600 mt-1"></p>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 text-xs">
+                    <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                        <span id="vs-p1-name" class="font-bold text-slate-800 block mb-1"></span>
+                        <div id="vs-p1-score" class="font-bold"></div>
+                    </div>
+                    <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                        <span id="vs-p2-name" class="font-bold text-slate-800 block mb-1"></span>
+                        <div id="vs-p2-score" class="font-bold"></div>
+                    </div>
+                </div>
+
+                <p id="vs-summary" class="text-xs text-slate-700 bg-slate-50 p-3 rounded-xl border border-slate-200"></p>
             </div>
 
             <div id="loading" class="hidden text-center text-emerald-600 font-medium text-sm animate-pulse">Analizando producto con IA...</div>
@@ -206,6 +262,10 @@
         window.isUserPro = false;
         let userHistoryData = [];
         let currentScanMode = 'product'; // 'product' o 'dish'
+        
+        // Variables para el modo Versus
+        let imageVersus1 = null;
+        let imageVersus2 = null;
 
         window.addEventListener('DOMContentLoaded', async () => {
             const urlParams = new URLSearchParams(window.location.search);
@@ -291,6 +351,96 @@
             } else {
                 btnDish.className = "flex-1 py-2 rounded-lg bg-white text-emerald-600 shadow-sm transition";
                 btnProd.className = "flex-1 py-2 rounded-lg text-slate-500 transition";
+            }
+        }
+
+        // Funciones del Modo Versus
+        function toggleVersusMode() {
+            if (!window.isUserPro) {
+                document.getElementById('paywall-modal').classList.remove('hidden');
+                return;
+            }
+            const container = document.getElementById('versus-container');
+            container.classList.toggle('hidden');
+        }
+
+        function handleVersusImage(slot, event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function() {
+                const base64 = reader.result.split(',')[1];
+                if (slot === 1) {
+                    imageVersus1 = { base64, mime: file.type };
+                    const p1 = document.getElementById('preview-v1');
+                    p1.src = reader.result;
+                    p1.classList.remove('hidden');
+                    document.getElementById('label-v1').classList.add('hidden');
+                } else {
+                    imageVersus2 = { base64, mime: file.type };
+                    const p2 = document.getElementById('preview-v2');
+                    p2.src = reader.result;
+                    p2.classList.remove('hidden');
+                    document.getElementById('label-v2').classList.add('hidden');
+                }
+
+                if (imageVersus1 && imageVersus2) {
+                    const btn = document.getElementById('btn-run-versus');
+                    btn.disabled = false;
+                    btn.className = "w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl transition text-xs shadow-md cursor-pointer";
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function runVersusComparison() {
+            if (!imageVersus1 || !imageVersus2) return;
+
+            document.getElementById('loading').classList.remove('hidden');
+            document.getElementById('versus-result-box').classList.add('hidden');
+
+            const session = (await supabaseClient.auth.getSession()).data.session;
+            const token = session?.access_token;
+
+            try {
+                const response = await fetch('/api/compare', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        image1Base64: imageVersus1.base64,
+                        mimeType1: imageVersus1.mime,
+                        image2Base64: imageVersus2.base64,
+                        mimeType2: imageVersus2.mime,
+                        healthProfile: userHealthProfile
+                    })
+                });
+
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Error en la comparación');
+
+                const c = data.comparison;
+                document.getElementById('vs-winner-name').textContent = c.winner;
+                document.getElementById('vs-winner-reason').textContent = c.reason;
+
+                document.getElementById('vs-p1-name').textContent = c.product1.name;
+                document.getElementById('vs-p1-score').innerHTML = `Puntuación: <span class="px-2 py-0.5 rounded text-white ${c.product1.scoreBg}">${c.product1.score}/100</span>`;
+
+                document.getElementById('vs-p2-name').textContent = c.product2.name;
+                document.getElementById('vs-p2-score').innerHTML = `Puntuación: <span class="px-2 py-0.5 rounded text-white ${c.product2.scoreBg}">${c.product2.score}/100</span>`;
+
+                document.getElementById('vs-summary').textContent = c.summary;
+                document.getElementById('versus-result-box').classList.remove('hidden');
+                document.getElementById('versus-container').classList.add('hidden');
+                
+                loadScanHistory();
+            } catch (err) {
+                alert("Error: " + err.message);
+            } finally {
+                document.getElementById('loading').classList.add('hidden');
             }
         }
 
