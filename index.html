@@ -99,7 +99,7 @@
         </div>
 
         <div class="w-full px-4 space-y-6">
-            <!-- TARJETA PRINCIPAL DE ESCANEO (Arriba, fija y accesible) -->
+            <!-- TARJETA PRINCIPAL DE ESCANEO -->
             <div class="bg-white p-6 rounded-3xl shadow-xl border border-slate-100 text-center space-y-6">
                 
                 <div class="w-16 h-16 mx-auto bg-emerald-500 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/30">
@@ -163,11 +163,11 @@
                 <p id="res-summary" class="text-xs text-slate-700 bg-slate-50 p-3 rounded-xl border border-slate-200"></p>
             </div>
 
-            <!-- SECCIÓN DE HISTORIAL PRO (Ahora ubicada debajo, con límite de 10 elementos) -->
+            <!-- SECCIÓN DE HISTORIAL PRO -->
             <div id="history-section" class="w-full bg-white p-5 rounded-2xl shadow-sm border border-slate-200 hidden">
                 <div class="flex justify-between items-center mb-3">
                     <h3 class="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-                        📜 Historial de Escaneos PRO
+                        📜 Historial de Escaneos PRO <span class="text-[10px] text-slate-400 font-normal">(Toca para ver detalles)</span>
                     </h3>
                     <button onclick="loadScanHistory()" class="text-xs text-emerald-600 font-semibold hover:underline">Actualizar</button>
                 </div>
@@ -198,6 +198,7 @@
         let currentUser = null;
         let userHealthProfile = { goal: 'general', notes: '' };
         window.isUserPro = false;
+        let userHistoryData = []; // Almacena el historial localmente
 
         window.addEventListener('DOMContentLoaded', async () => {
             const urlParams = new URLSearchParams(window.location.search);
@@ -313,22 +314,7 @@
 
                     if (!response.ok) throw new Error(data.error || 'Error al analizar');
 
-                    const a = data.analysis;
-                    document.getElementById('res-name').textContent = a.name;
-                    
-                    const catEl = document.getElementById('res-category');
-                    catEl.textContent = a.category;
-                    catEl.className = `text-xs font-bold px-2.5 py-1 rounded-full uppercase tracking-wider ${a.categoryClass}`;
-
-                    const scoreBadge = document.getElementById('res-score-badge');
-                    scoreBadge.textContent = `${a.score}/100`;
-                    scoreBadge.className = `px-3 py-1 rounded-xl text-white font-bold text-sm ${a.scoreBg}`;
-
-                    document.getElementById('seals-container').innerHTML = (a.seals || []).map(s => `<span class="bg-red-50 text-red-700 border border-red-200 text-[10px] font-bold px-2 py-0.5 rounded">${s}</span>`).join('');
-                    document.getElementById('harmful-list').innerHTML = (a.harmful || []).map(h => `<li>• <b>${h.name}:</b> ${h.damage}</li>`).join('');
-                    document.getElementById('benefits-list').innerHTML = (a.benefits || []).map(b => `<li>• ${b.text}</li>`).join('');
-                    document.getElementById('res-summary').textContent = a.summary;
-                    document.getElementById('result-box').classList.remove('hidden');
+                    renderAnalysis(data.analysis, reader.result);
 
                     if (!data.is_pro) {
                         document.getElementById('status-badge').textContent = `Escaneos de hoy: ${3 - data.scans_today} restantes`;
@@ -342,6 +328,38 @@
                 }
             };
             reader.readAsDataURL(file);
+        }
+
+        // Función reutilizable para mostrar el análisis en pantalla
+        function renderAnalysis(a, imgSrc) {
+            if (imgSrc) {
+                document.getElementById('res-img').src = imgSrc;
+            } else {
+                document.getElementById('res-img').src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23cbd5e1'%3E%3Cpath d='M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z'/%3E%3C/svg%3E";
+            }
+
+            document.getElementById('res-name').textContent = a.product_name || a.name;
+            
+            const catEl = document.getElementById('res-category');
+            const categoryText = a.category || '';
+            const categoryClass = a.category_class || a.categoryClass || 'bg-slate-100 text-slate-800';
+            catEl.textContent = categoryText;
+            catEl.className = `text-xs font-bold px-2.5 py-1 rounded-full uppercase tracking-wider ${categoryClass}`;
+
+            const scoreBadge = document.getElementById('res-score-badge');
+            const scoreVal = a.score;
+            const scoreBg = a.score_bg || a.scoreBg || (scoreVal > 70 ? 'bg-emerald-500' : scoreVal > 40 ? 'bg-amber-500' : 'bg-rose-500');
+            scoreBadge.textContent = `${scoreVal}/100`;
+            scoreBadge.className = `px-3 py-1 rounded-xl text-white font-bold text-sm ${scoreBg}`;
+
+            document.getElementById('seals-container').innerHTML = (a.seals || []).map(s => `<span class="bg-red-50 text-red-700 border border-red-200 text-[10px] font-bold px-2 py-0.5 rounded">${s}</span>`).join('');
+            document.getElementById('harmful-list').innerHTML = (a.harmful || []).map(h => `<li>• <b>${h.name}:</b> ${h.damage}</li>`).join('');
+            document.getElementById('benefits-list').innerHTML = (a.benefits || []).map(b => `<li>• ${b.text}</li>`).join('');
+            document.getElementById('res-summary').textContent = a.summary;
+            document.getElementById('result-box').classList.remove('hidden');
+
+            // Desplazar la vista suavemente hacia los resultados
+            document.getElementById('result-box').scrollIntoView({ behavior: 'smooth' });
         }
 
         function subscribePRO() {
@@ -425,7 +443,7 @@
         }
 
         // ==========================================
-        // HISTORIAL DE ESCANEOS PRO (Limitado a 10)
+        // HISTORIAL DE ESCANEOS PRO (Con selección interactiva)
         // ==========================================
         async function loadScanHistory() {
             if (!currentUser || !window.isUserPro) return;
@@ -440,29 +458,41 @@
                 .select('*')
                 .eq('user_id', currentUser.id)
                 .order('created_at', { ascending: false })
-                .limit(10); // <--- Límite ajustado a los últimos 10 escaneados
+                .limit(10);
 
             if (error) {
                 console.error('Error cargando historial:', error);
                 return;
             }
 
-            if (!data || data.length === 0) {
+            userHistoryData = data || []; // Guardamos los datos localmente
+
+            if (userHistoryData.length === 0) {
                 historyList.innerHTML = `<p class="text-slate-400 text-center py-2">Aún no tienes productos escaneados en tu historial.</p>`;
                 return;
             }
 
-            historyList.innerHTML = data.map(item => `
-                <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-100 flex justify-between items-center">
+            historyList.innerHTML = userHistoryData.map((item, index) => `
+                <div onclick="selectHistoryItem(${index})" class="p-3 bg-slate-50 hover:bg-emerald-50 cursor-pointer rounded-xl border border-slate-100 flex justify-between items-center transition">
                     <div>
                         <span class="font-bold text-slate-800">${item.product_name}</span>
                         <p class="text-[10px] text-slate-400">${new Date(item.created_at).toLocaleDateString()} - <span class="uppercase">${item.category || ''}</span></p>
                     </div>
-                    <span class="px-2 py-1 rounded-lg text-white font-bold text-xs ${item.score > 70 ? 'bg-emerald-500' : item.score > 40 ? 'bg-amber-500' : 'bg-rose-500'}">
-                        ${item.score}/100
-                    </span>
+                    <div class="flex items-center gap-2">
+                        <span class="px-2 py-1 rounded-lg text-white font-bold text-xs ${item.score > 70 ? 'bg-emerald-500' : item.score > 40 ? 'bg-amber-500' : 'bg-rose-500'}">
+                            ${item.score}/100
+                        </span>
+                        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                    </div>
                 </div>
             `).join('');
+        }
+
+        // Función para cargar el producto seleccionado del historial a la vista principal
+        function selectHistoryItem(index) {
+            const item = userHistoryData[index];
+            if (!item) return;
+            renderAnalysis(item, null); // Renderiza los datos guardados sin foto nueva
         }
     </script>
 </body>
