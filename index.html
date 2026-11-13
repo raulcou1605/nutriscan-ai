@@ -266,7 +266,11 @@
                             'Content-Type': 'application/json',
                             'Authorization': `Bearer ${token}`
                         },
-                        body: JSON.stringify({ imageBase64: base64String, mimeType: file.type })
+                       body: JSON.stringify({ 
+            imageBase64: base64String, 
+            mimeType: file.type,
+            healthProfile: (window.isUserPro || false) ? userHealthProfile : null 
+        })
                     });
 
                     const data = await response.json();
