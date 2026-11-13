@@ -221,7 +221,11 @@
                     <h4 class="text-xs font-bold uppercase text-emerald-600">Puntos favorables:</h4>
                     <ul id="benefits-list" class="text-xs text-slate-600 space-y-1"></ul>
                 </div>
-
+<!-- SECCIÓN DE ALTERNATIVAS SALUDABLES (EXCLUSIVO PRO) -->
+<div id="alternatives-section" class="space-y-1 hidden">
+    <h4 class="text-xs font-bold uppercase text-indigo-600">💡 Alternativas más saludables sugeridas:</h4>
+    <ul id="alternatives-list" class="text-xs text-slate-600 space-y-1 bg-indigo-50/50 p-3 rounded-xl border border-indigo-100"></ul>
+</div>
                 <p id="res-summary" class="text-xs text-slate-700 bg-slate-50 p-3 rounded-xl border border-slate-200"></p>
             </div>
 
@@ -512,7 +516,7 @@
             if (imgSrc) {
                 document.getElementById('res-img').src = imgSrc;
             } else {
-                document.getElementById('res-img').src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23cbd5e1'%3E%3Cpath d='M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z'/%3E%3C/svg%3E";
+                document.getElementById('res-img').src = "data:image/svg+xml,%3Csvg xmlns='[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)' viewBox='0 0 24 24' fill='%23cbd5e1'%3E%3Cpath d='M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z'/%3E%3C/svg%3E";
             }
 
             document.getElementById('res-name').textContent = a.product_name || a.name;
@@ -532,6 +536,17 @@
             document.getElementById('seals-container').innerHTML = (a.seals || []).map(s => `<span class="bg-red-50 text-red-700 border border-red-200 text-[10px] font-bold px-2 py-0.5 rounded">${s}</span>`).join('');
             document.getElementById('harmful-list').innerHTML = (a.harmful || []).map(h => `<li>• <b>${h.name}:</b> ${h.damage}</li>`).join('');
             document.getElementById('benefits-list').innerHTML = (a.benefits || []).map(b => `<li>• ${b.text}</li>`).join('');
+            
+            // Renderizar alternativas saludables si existen (PRO)
+            const altSection = document.getElementById('alternatives-section');
+            const altList = document.getElementById('alternatives-list');
+            if (a.alternatives && a.alternatives.length > 0) {
+                altList.innerHTML = a.alternatives.map(alt => `<li>• <b>${alt.name}:</b> ${alt.reason}</li>`).join('');
+                altSection.classList.remove('hidden');
+            } else {
+                altSection.classList.add('hidden');
+            }
+
             document.getElementById('res-summary').textContent = a.summary;
             document.getElementById('result-box').classList.remove('hidden');
 
