@@ -98,21 +98,8 @@
             </div>
         </div>
 
-        <!-- SECCIÓN DE HISTORIAL PRO -->
-        <div id="history-section" class="w-full max-w-md bg-white p-5 rounded-2xl shadow-sm border border-slate-200 mb-4 hidden">
-            <div class="flex justify-between items-center mb-3">
-                <h3 class="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-                    📜 Historial de Escaneos PRO
-                </h3>
-                <button onclick="loadScanHistory()" class="text-xs text-emerald-600 font-semibold hover:underline">Actualizar</button>
-            </div>
-            <div id="history-list" class="space-y-2 max-h-60 overflow-y-auto text-xs text-slate-600">
-                <!-- Los elementos se cargarán dinámicamente aquí -->
-            </div>
-        </div>
-
         <div class="w-full px-4 space-y-6">
-            <!-- TARJETA PRINCIPAL DE ESCANEO -->
+            <!-- TARJETA PRINCIPAL DE ESCANEO (Arriba, fija y accesible) -->
             <div class="bg-white p-6 rounded-3xl shadow-xl border border-slate-100 text-center space-y-6">
                 
                 <div class="w-16 h-16 mx-auto bg-emerald-500 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/30">
@@ -174,6 +161,19 @@
                 </div>
 
                 <p id="res-summary" class="text-xs text-slate-700 bg-slate-50 p-3 rounded-xl border border-slate-200"></p>
+            </div>
+
+            <!-- SECCIÓN DE HISTORIAL PRO (Ahora ubicada debajo, con límite de 10 elementos) -->
+            <div id="history-section" class="w-full bg-white p-5 rounded-2xl shadow-sm border border-slate-200 hidden">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                        📜 Historial de Escaneos PRO
+                    </h3>
+                    <button onclick="loadScanHistory()" class="text-xs text-emerald-600 font-semibold hover:underline">Actualizar</button>
+                </div>
+                <div id="history-list" class="space-y-2 max-h-60 overflow-y-auto text-xs text-slate-600">
+                    <!-- Los elementos se cargarán dinámicamente aquí -->
+                </div>
             </div>
         </div>
     </div>
@@ -255,7 +255,6 @@
 
                 setupHealthProfileUI(data);
 
-                // Cargar historial si es PRO
                 if (window.isUserPro) {
                     loadScanHistory();
                 }
@@ -334,7 +333,6 @@
                     if (!data.is_pro) {
                         document.getElementById('status-badge').textContent = `Escaneos de hoy: ${3 - data.scans_today} restantes`;
                     } else {
-                        // Si es PRO, actualizamos el historial tras un nuevo escaneo exitoso
                         loadScanHistory();
                     }
                 } catch (err) {
@@ -393,7 +391,7 @@
                 document.getElementById('health-goal').value = userHealthProfile.goal;
                 document.getElementById('health-notes').value = userHealthProfile.notes;
             } else {
-                lockedBox.classList.add('hidden');
+                lockedBox.classList.remove('hidden');
                 proForm.classList.add('hidden');
             }
         }
@@ -427,7 +425,7 @@
         }
 
         // ==========================================
-        // HISTORIAL DE ESCANEOS PRO
+        // HISTORIAL DE ESCANEOS PRO (Limitado a 10)
         // ==========================================
         async function loadScanHistory() {
             if (!currentUser || !window.isUserPro) return;
@@ -442,7 +440,7 @@
                 .select('*')
                 .eq('user_id', currentUser.id)
                 .order('created_at', { ascending: false })
-                .limit(20);
+                .limit(10); // <--- Límite ajustado a los últimos 10 escaneados
 
             if (error) {
                 console.error('Error cargando historial:', error);
