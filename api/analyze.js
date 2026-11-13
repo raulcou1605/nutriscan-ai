@@ -50,13 +50,11 @@ module.exports = async function handler(req, res) {
             profile = newProfile;
         }
 
-        // 1. Extraemos imageBase64, mimeType, healthProfile y el scanMode enviado desde el cliente
         const { imageBase64, mimeType, healthProfile, scanMode } = req.body;
         if (!imageBase64) {
             return res.status(400).json({ error: 'No se proporcionó ninguna imagen.' });
         }
 
-        // Validación de seguridad: El modo plato preparado es estrictamente exclusivo para usuarios PRO
         if (scanMode === 'dish' && !profile.is_pro) {
             return res.status(403).json({ error: 'El modo de platos preparados es exclusivo para usuarios PRO.' });
         }
@@ -85,24 +83,28 @@ module.exports = async function handler(req, res) {
             profile.scans_today = scansToday + 1;
         }
 
-        // Preparamos el objetivo del análisis según el modo seleccionado
         let analysisGoalText = "";
         if (scanMode === 'dish') {
-            analysisGoalText = `Analiza este plato de comida preparado o menú de restaurante. Estima visualmente las porciones, calorías aproximadas y distribución de macronutrientes (Proteínas, Grasas, Carbohidratos).`;
+            analysisGoalText = `Analiza este plato de comida preparado o menú de restaurante. Estima visualmente las porciones, calorías aproximadas y distribución de macronutrientes.`;
         } else {
             analysisGoalText = `Analiza esta etiqueta o producto alimenticio empacado.`;
         }
 
-        // 2. Preparamos el prompt personalizado si el usuario es PRO y configuró su perfil
         let personalizationPrompt = "";
-        if (profile.is_pro && healthProfile) {
-            personalizationPrompt = `
-    
+        let proAlternativesInstruction = "";
+        
+        if (profile.is_pro) {
+            proAlternativesInstruction = `\n  "alternatives": [{"name": "Nombre de la alternativa comercial en México o casera", "reason": "Por qué es una mejor opción"}],`;
+            if (healthProfile) {
+                personalizationPrompt = `
     CONTEXTO MÉDICO Y OBJETIVO DEL USUARIO (PRIORIDAD ALTA):
     - Objetivo nutricional: ${healthProfile.goal}
     - Alergias o restricciones estrictas: ${healthProfile.notes || "Ninguna especificada"}
     
-    INSTRUCCIÓN ADICIONAL: Evalúa el contenido específicamente bajo este perfil. Si contiene alérgenos o contradice su objetivo (ej. exceso de carbohidratos para diabetes o sodio para hipertensión), refléjalo con claridad dentro del resumen o puntos de cuidado.`;
+    INSTRUCCIÓN ADICIONAL: Evalúa el contenido específicamente bajo este perfil. Si contiene alérgenos o contradice su objetivo, refléjalo con claridad y adapta las alternativas sugeridas a este perfil.`;
+            }
+        } else {
+            proAlternativesInstruction = `\n  "alternatives": [],`;
         }
 
         const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -121,15 +123,15 @@ module.exports = async function handler(req, res) {
                                 type: 'text',
                                 text: `${analysisGoalText} Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin texto adicional, sin bloques de código markdown como \`\`\`) con esta estructura exacta:
 {
-  "name": "Nombre del platillo o producto",
-  "category": "Categoría (ej. Comida Preparada, Ultraprocesado, Saludable)",
-  "categoryClass": "bg-emerald-100 text-emerald-800",
-  "score": 80,
-  "scoreBg": "bg-emerald-500",
-  "seals": ["Alto en Proteína", "Calorías Estimadas: ~450 kcal"],
-  "harmful": [{"name": "Ingrediente o porción", "damage": "Efecto a considerar"}],
-  "benefits": [{"text": "Punto nutricional favorable"}],
-  "summary": "Resumen nutricional, calorías aproximadas y desglose de macros."
+  "name": "Nombre del producto",
+  "category": "Categoría (ej. Ultraprocesado, Saludable, Bebida)",
+  "categoryClass": "bg-red-100 text-red-800",
+  "score": 75,
+  "scoreBg": "bg-amber-500",
+  "seals": ["Exceso Sodio", "Exceso Azúcares"],
+  "harmful": [{"name": "Ingrediente", "damage": "Efecto negativo"}],
+  "benefits": [{"text": "Punto favorable"}],${proAlternativesInstruction}
+  "summary": "Resumen breve del análisis general."
 }${personalizationPrompt}`
                             },
                             {
@@ -142,7 +144,7 @@ module.exports = async function handler(req, res) {
                     }
                 ],
                 temperature: 0.2,
-                max_tokens: 800
+                max_tokens: 900
             })
         });
 
@@ -156,7 +158,6 @@ module.exports = async function handler(req, res) {
         
         const analysis = JSON.parse(rawContent);
 
-        // 3. Si el usuario es PRO, guardamos todos los detalles en el historial de Supabase
         if (profile.is_pro) {
             await supabase.from('scan_history').insert({
                 user_id: user.id,
