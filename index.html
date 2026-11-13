@@ -315,6 +315,57 @@
         function closePaywall() {
             document.getElementById('paywall-modal').classList.add('hidden');
         }
+        // ==========================================
+    // PERFIL DE SALUD (PRO)
+    // ==========================================
+    let userHealthProfile = { goal: 'general', notes: '' };
+
+    function setupHealthProfileUI(profile) {
+        const lockedBox = document.getElementById('health-pro-locked');
+        const proForm = document.getElementById('health-pro-form');
+
+        if (profile && profile.is_pro) {
+            lockedBox.classList.add('hidden');
+            proForm.classList.remove('hidden');
+
+            userHealthProfile.goal = profile.health_goal || 'general';
+            userHealthProfile.notes = profile.health_notes || '';
+
+            document.getElementById('health-goal').value = userHealthProfile.goal;
+            document.getElementById('health-notes').value = userHealthProfile.notes;
+        } else {
+            lockedBox.classList.remove('hidden');
+            proForm.classList.add('hidden');
+        }
+    }
+
+    async function saveHealthProfile() {
+        if (!currentUser) return;
+        const btn = document.getElementById('save-health-btn');
+        const msg = document.getElementById('health-save-msg');
+        
+        const goal = document.getElementById('health-goal').value;
+        const notes = document.getElementById('health-notes').value.trim();
+
+        btn.disabled = true;
+        btn.textContent = 'Guardando...';
+
+        const { error } = await supabaseClient
+            .from('profiles')
+            .update({ health_goal: goal, health_notes: notes })
+            .eq('id', currentUser.id);
+
+        btn.disabled = false;
+        btn.textContent = 'Guardar preferencias de salud';
+
+        if (!error) {
+            userHealthProfile = { goal, notes };
+            msg.classList.remove('hidden');
+            setTimeout(() => msg.classList.add('hidden'), 2500);
+        } else {
+            alert('Error al guardar el perfil de salud.');
+        }
+    }
     </script>
 </body>
 </html>
