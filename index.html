@@ -98,6 +98,19 @@
             </div>
         </div>
 
+        <!-- SECCIÓN DE HISTORIAL PRO -->
+        <div id="history-section" class="w-full max-w-md bg-white p-5 rounded-2xl shadow-sm border border-slate-200 mb-4 hidden">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                    📜 Historial de Escaneos PRO
+                </h3>
+                <button onclick="loadScanHistory()" class="text-xs text-emerald-600 font-semibold hover:underline">Actualizar</button>
+            </div>
+            <div id="history-list" class="space-y-2 max-h-60 overflow-y-auto text-xs text-slate-600">
+                <!-- Los elementos se cargarán dinámicamente aquí -->
+            </div>
+        </div>
+
         <div class="w-full px-4 space-y-6">
             <!-- TARJETA PRINCIPAL DE ESCANEO -->
             <div class="bg-white p-6 rounded-3xl shadow-xl border border-slate-100 text-center space-y-6">
@@ -241,6 +254,11 @@
                 }
 
                 setupHealthProfileUI(data);
+
+                // Cargar historial si es PRO
+                if (window.isUserPro) {
+                    loadScanHistory();
+                }
             }
         }
 
@@ -315,6 +333,9 @@
 
                     if (!data.is_pro) {
                         document.getElementById('status-badge').textContent = `Escaneos de hoy: ${3 - data.scans_today} restantes`;
+                    } else {
+                        // Si es PRO, actualizamos el historial tras un nuevo escaneo exitoso
+                        loadScanHistory();
                     }
                 } catch (err) {
                     alert("Error: " + err.message);
@@ -372,7 +393,7 @@
                 document.getElementById('health-goal').value = userHealthProfile.goal;
                 document.getElementById('health-notes').value = userHealthProfile.notes;
             } else {
-                lockedBox.classList.remove('hidden');
+                lockedBox.classList.add('hidden');
                 proForm.classList.add('hidden');
             }
         }
@@ -403,6 +424,47 @@
             } else {
                 alert('Error al guardar el perfil de salud.');
             }
+        }
+
+        // ==========================================
+        // HISTORIAL DE ESCANEOS PRO
+        // ==========================================
+        async function loadScanHistory() {
+            if (!currentUser || !window.isUserPro) return;
+
+            const historySection = document.getElementById('history-section');
+            const historyList = document.getElementById('history-list');
+            
+            historySection.classList.remove('hidden');
+
+            const { data, error } = await supabaseClient
+                .from('scan_history')
+                .select('*')
+                .eq('user_id', currentUser.id)
+                .order('created_at', { ascending: false })
+                .limit(20);
+
+            if (error) {
+                console.error('Error cargando historial:', error);
+                return;
+            }
+
+            if (!data || data.length === 0) {
+                historyList.innerHTML = `<p class="text-slate-400 text-center py-2">Aún no tienes productos escaneados en tu historial.</p>`;
+                return;
+            }
+
+            historyList.innerHTML = data.map(item => `
+                <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-100 flex justify-between items-center">
+                    <div>
+                        <span class="font-bold text-slate-800">${item.product_name}</span>
+                        <p class="text-[10px] text-slate-400">${new Date(item.created_at).toLocaleDateString()} - <span class="uppercase">${item.category || ''}</span></p>
+                    </div>
+                    <span class="px-2 py-1 rounded-lg text-white font-bold text-xs ${item.score > 70 ? 'bg-emerald-500' : item.score > 40 ? 'bg-amber-500' : 'bg-rose-500'}">
+                        ${item.score}/100
+                    </span>
+                </div>
+            `).join('');
         }
     </script>
 </body>
