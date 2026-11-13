@@ -4,7 +4,8 @@
   "description": "NutriScan AI Backend",
   "main": "api/analyze.js",
   "dependencies": {
-    "@supabase/supabase-js": "^2.39.8"
+    "@supabase/supabase-js": "^2.39.8",
+    "stripe": "^14.14.0"
   },
   "devDependencies": {},
   "engines": {
