@@ -74,9 +74,22 @@ module.exports = async function handler(req, res) {
             profile.scans_today = scansToday + 1;
         }
 
-        const { imageBase64, mimeType } = req.body;
+        // 1. Extraemos imageBase64, mimeType y el healthProfile enviado desde el cliente
+        const { imageBase64, mimeType, healthProfile } = req.body;
         if (!imageBase64) {
             return res.status(400).json({ error: 'No se proporcionó ninguna imagen.' });
+        }
+
+        // 2. Preparamos el prompt personalizado si el usuario es PRO y configuró su perfil
+        let personalizationPrompt = "";
+        if (profile.is_pro && healthProfile) {
+            personalizationPrompt = `
+    
+    CONTEXTO MÉDICO Y OBJETIVO DEL USUARIO (PRIORIDAD ALTA):
+    - Objetivo nutricional: ${healthProfile.goal}
+    - Alergias o restricciones estrictas: ${healthProfile.notes || "Ninguna especificada"}
+    
+    INSTRUCCIÓN ADICIONAL: Evalúa la tabla nutrimental e ingredientes específicamente bajo este perfil. Si el producto contiene algún alérgeno mencionado o contradice su objetivo (ej. alto sodio para hipertensión, alto azúcar para diabetes), refléjalo con claridad dentro del resumen o puntos de cuidado.`;
         }
 
         const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -104,7 +117,7 @@ module.exports = async function handler(req, res) {
   "harmful": [{"name": "Ingrediente", "damage": "Efecto negativo"}],
   "benefits": [{"text": "Punto favorable"}],
   "summary": "Resumen breve del análisis general."
-}`
+}${personalizationPrompt}`
                             },
                             {
                                 type: 'image_url',
