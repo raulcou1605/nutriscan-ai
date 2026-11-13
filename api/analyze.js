@@ -143,6 +143,17 @@ module.exports = async function handler(req, res) {
         
         const analysis = JSON.parse(rawContent);
 
+        // 3. Si el usuario es PRO, guardamos automáticamente en el historial de Supabase
+        if (profile.is_pro) {
+            await supabase.from('scan_history').insert({
+                user_id: user.id,
+                product_name: analysis.name,
+                category: analysis.category,
+                score: analysis.score,
+                summary: analysis.summary
+            });
+        }
+
         return res.status(200).json({
             success: true,
             analysis,
