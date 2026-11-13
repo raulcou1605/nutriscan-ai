@@ -47,48 +47,57 @@
             </div>
             <button onclick="logout()" class="text-xs bg-black/20 hover:bg-black/30 px-3 py-1.5 rounded-full transition">Salir</button>
         </div>
-<!-- PANEL DE PERFIL DE SALUD (PRO) -->
-<div id="health-profile-card" class="w-full max-w-md bg-white rounded-2xl shadow-sm border border-slate-200 p-4 mb-4">
-    <div class="flex items-center justify-between mb-2">
-        <h3 class="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-            🩺 Perfil de Salud Personalizado
-            <span class="text-[10px] uppercase tracking-wider bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-semibold">PRO</span>
-        </h3>
-    </div>
 
-    <!-- Vista para usuarios GRATUITOS -->
-    <div id="health-pro-locked" class="text-xs text-slate-500 bg-slate-50 p-3 rounded-xl border border-dashed border-slate-300">
-        Configura alergias, diabetes, hipertensión u objetivos físicos para recibir alertas personalizadas en cada escaneo. 
-        <button onclick="window.location.href=STRIPE_LINK" class="text-emerald-600 font-semibold underline ml-1">Desbloquear con PRO</button>
-    </div>
+        <!-- PANEL DE PERFIL DE SALUD (PRO) -->
+        <div id="health-profile-card" class="w-full max-w-md bg-white rounded-2xl shadow-sm border border-slate-200 p-4 mb-4">
+            <div class="flex items-center justify-between mb-2">
+                <h3 class="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                    🩺 Perfil de Salud Personalizado
+                    <span class="text-[10px] uppercase tracking-wider bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-semibold">PRO</span>
+                </h3>
+            </div>
 
-    <!-- Formulario activo para usuarios PRO -->
-    <div id="health-pro-form" class="hidden space-y-3 mt-2">
-        <div>
-            <label class="block text-xs font-medium text-slate-600 mb-1">Objetivo principal</label>
-            <select id="health-goal" class="w-full text-sm rounded-lg border border-slate-300 p-2 bg-white focus:outline-none focus:border-emerald-500">
-                <option value="general">Alimentación balanceada (General)</option>
-                <option value="perdida_peso">Déficit calórico / Bajar de peso</option>
-                <option value="ganancia_muscular">Alto en proteína / Ganar músculo</option>
-                <option value="diabetes">Control de glucosa / Bajo en azúcar</option>
-                <option value="hipertension">Control de presión / Bajo en sodio</option>
-                <option value="keto">Dieta Cetogénica (Keto / Low Carb)</option>
-            </select>
+            <!-- Vista para usuarios GRATUITOS -->
+            <div id="health-pro-locked" class="text-xs text-slate-500 bg-slate-50 p-3 rounded-xl border border-dashed border-slate-300">
+                Configura alergias, diabetes, hipertensión u objetivos físicos para recibir alertas personalizadas en cada escaneo. 
+                <button onclick="window.location.href=STRIPE_LINK" class="text-emerald-600 font-semibold underline ml-1">Desbloquear con PRO</button>
+            </div>
+
+            <!-- Formulario activo para usuarios PRO -->
+            <div id="health-pro-form" class="hidden space-y-3 mt-2">
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">Objetivo principal</label>
+                    <select id="health-goal" class="w-full text-sm rounded-lg border border-slate-300 p-2 bg-white focus:outline-none focus:border-emerald-500">
+                        <option value="general">Alimentación balanceada (General)</option>
+                        <option value="perdida_peso">Déficit calórico / Bajar de peso</option>
+                        <option value="ganancia_muscular">Alto en proteína / Ganar músculo</option>
+                        <option value="diabetes">Control de glucosa / Bajo en azúcar</option>
+                        <option value="hipertension">Control de presión / Bajo en sodio</option>
+                        <option value="keto">Dieta Cetogénica (Keto / Low Carb)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">Alergias o ingredientes a evitar</label>
+                    <input type="text" id="health-notes" placeholder="Ej. Gluten, lactosa, cacahuate, edulcorantes..." 
+                           class="w-full text-sm rounded-lg border border-slate-300 p-2 focus:outline-none focus:border-emerald-500">
+                </div>
+
+                <button id="save-health-btn" onclick="saveHealthProfile()" 
+                        class="w-full bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold py-2.5 rounded-lg transition">
+                    Guardar preferencias de salud
+                </button>
+                <p id="health-save-msg" class="text-xs text-emerald-600 text-center hidden">¡Perfil actualizado!</p>
+
+                <!-- Botón de gestión/cancelación en Stripe (Visible solo para PRO) -->
+                <div class="pt-3 border-t border-slate-100 text-center">
+                    <button onclick="openStripePortal()" class="text-xs text-rose-500 font-medium hover:underline">
+                        Gestionar o cancelar suscripción en Stripe
+                    </button>
+                </div>
+            </div>
         </div>
 
-        <div>
-            <label class="block text-xs font-medium text-slate-600 mb-1">Alergias o ingredientes a evitar</label>
-            <input type="text" id="health-notes" placeholder="Ej. Gluten, lactosa, cacahuate, edulcorantes..." 
-                   class="w-full text-sm rounded-lg border border-slate-300 p-2 focus:outline-none focus:border-emerald-500">
-        </div>
-
-        <button id="save-health-btn" onclick="saveHealthProfile()" 
-                class="w-full bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold py-2.5 rounded-lg transition">
-            Guardar preferencias de salud
-        </button>
-        <p id="health-save-msg" class="text-xs text-emerald-600 text-center hidden">¡Perfil actualizado!</p>
-    </div>
-</div>
         <div class="w-full px-4 space-y-6">
             <!-- TARJETA PRINCIPAL DE ESCANEO -->
             <div class="bg-white p-6 rounded-3xl shadow-xl border border-slate-100 text-center space-y-6">
@@ -168,12 +177,14 @@
 
     <script>
         const SUPABASE_URL = "https://wintikgwqjkapubzojzl.supabase.co";
-        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndpbnRpa2d3cWprYXB1YnpvanpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ1MDY4NjcsImV4cCI6MjExMDA4Mjg2N30.stWdAZkWI1SErIyIUWXsEBZVjGv6pyTfnFryfq-50v0"; // Reemplaza con tu llave anon real
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndpbnRpa2d3cWprYXB1YnpvanpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ1MDY4NjcsImV4cCI6MjExMDA4Mjg2N30.stWdAZkWI1SErIyIUWXsEBZVjGv6pyTfnFryfq-50v0";
         
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         const STRIPE_LINK = "https://buy.stripe.com/14AaEZeoG9Ww3Mgeu3bEA01";
 
         let currentUser = null;
+        let userHealthProfile = { goal: 'general', notes: '' };
+        window.isUserPro = false;
 
         window.addEventListener('DOMContentLoaded', async () => {
             const urlParams = new URLSearchParams(window.location.search);
@@ -220,12 +231,16 @@
 
             const { data } = await supabaseClient.from('profiles').select('*').eq('id', currentUser.id).single();
             if (data) {
+                window.isUserPro = data.is_pro || false;
+
                 const badge = document.getElementById('status-badge');
                 if (data.is_pro) {
                     badge.textContent = "Plan PRO: Escaneos Ilimitados";
                 } else {
                     badge.textContent = `Escaneos de hoy: ${3 - (data.scans_today || 0)} restantes`;
                 }
+
+                setupHealthProfileUI(data);
             }
         }
 
@@ -250,9 +265,7 @@
             reader.onload = async function() {
                 const base64String = reader.result.split(',')[1];
                 
-                // Mostrar la imagen seleccionada/tomada de inmediato en la UI
                 document.getElementById('res-img').src = reader.result;
-
                 document.getElementById('loading').classList.remove('hidden');
                 document.getElementById('result-box').classList.add('hidden');
 
@@ -266,11 +279,11 @@
                             'Content-Type': 'application/json',
                             'Authorization': `Bearer ${token}`
                         },
-                       body: JSON.stringify({ 
-            imageBase64: base64String, 
-            mimeType: file.type,
-            healthProfile: (window.isUserPro || false) ? userHealthProfile : null 
-        })
+                        body: JSON.stringify({ 
+                            imageBase64: base64String, 
+                            mimeType: file.type,
+                            healthProfile: (window.isUserPro || false) ? userHealthProfile : null 
+                        })
                     });
 
                     const data = await response.json();
@@ -316,60 +329,81 @@
             window.location.href = STRIPE_LINK;
         }
 
+        async function openStripePortal() {
+            const session = (await supabaseClient.auth.getSession()).data.session;
+            if (!session) {
+                alert("Por favor inicia sesión de nuevo.");
+                return;
+            }
+
+            const response = await fetch('/api/create-portal-session', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${session.access_token}`
+                }
+            });
+
+            const data = await response.json();
+            if (data.url) {
+                window.location.href = data.url;
+            } else {
+                alert(data.error || 'No se pudo abrir el portal de gestión.');
+            }
+        }
+
         function closePaywall() {
             document.getElementById('paywall-modal').classList.add('hidden');
         }
+
         // ==========================================
-    // PERFIL DE SALUD (PRO)
-    // ==========================================
-    let userHealthProfile = { goal: 'general', notes: '' };
+        // PERFIL DE SALUD (PRO)
+        // ==========================================
+        function setupHealthProfileUI(profile) {
+            const lockedBox = document.getElementById('health-pro-locked');
+            const proForm = document.getElementById('health-pro-form');
 
-    function setupHealthProfileUI(profile) {
-        const lockedBox = document.getElementById('health-pro-locked');
-        const proForm = document.getElementById('health-pro-form');
+            if (profile && profile.is_pro) {
+                lockedBox.classList.add('hidden');
+                proForm.classList.remove('hidden');
 
-        if (profile && profile.is_pro) {
-            lockedBox.classList.add('hidden');
-            proForm.classList.remove('hidden');
+                userHealthProfile.goal = profile.health_goal || 'general';
+                userHealthProfile.notes = profile.health_notes || '';
 
-            userHealthProfile.goal = profile.health_goal || 'general';
-            userHealthProfile.notes = profile.health_notes || '';
-
-            document.getElementById('health-goal').value = userHealthProfile.goal;
-            document.getElementById('health-notes').value = userHealthProfile.notes;
-        } else {
-            lockedBox.classList.remove('hidden');
-            proForm.classList.add('hidden');
+                document.getElementById('health-goal').value = userHealthProfile.goal;
+                document.getElementById('health-notes').value = userHealthProfile.notes;
+            } else {
+                lockedBox.classList.remove('hidden');
+                proForm.classList.add('hidden');
+            }
         }
-    }
 
-    async function saveHealthProfile() {
-        if (!currentUser) return;
-        const btn = document.getElementById('save-health-btn');
-        const msg = document.getElementById('health-save-msg');
-        
-        const goal = document.getElementById('health-goal').value;
-        const notes = document.getElementById('health-notes').value.trim();
+        async function saveHealthProfile() {
+            if (!currentUser) return;
+            const btn = document.getElementById('save-health-btn');
+            const msg = document.getElementById('health-save-msg');
+            
+            const goal = document.getElementById('health-goal').value;
+            const notes = document.getElementById('health-notes').value.trim();
 
-        btn.disabled = true;
-        btn.textContent = 'Guardando...';
+            btn.disabled = true;
+            btn.textContent = 'Guardando...';
 
-        const { error } = await supabaseClient
-            .from('profiles')
-            .update({ health_goal: goal, health_notes: notes })
-            .eq('id', currentUser.id);
+            const { error } = await supabaseClient
+                .from('profiles')
+                .update({ health_goal: goal, health_notes: notes })
+                .eq('id', currentUser.id);
 
-        btn.disabled = false;
-        btn.textContent = 'Guardar preferencias de salud';
+            btn.disabled = false;
+            btn.textContent = 'Guardar preferencias de salud';
 
-        if (!error) {
-            userHealthProfile = { goal, notes };
-            msg.classList.remove('hidden');
-            setTimeout(() => msg.classList.add('hidden'), 2500);
-        } else {
-            alert('Error al guardar el perfil de salud.');
+            if (!error) {
+                userHealthProfile = { goal, notes };
+                msg.classList.remove('hidden');
+                setTimeout(() => msg.classList.add('hidden'), 2500);
+            } else {
+                alert('Error al guardar el perfil de salud.');
+            }
         }
-    }
     </script>
 </body>
 </html>
