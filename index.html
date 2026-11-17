@@ -857,7 +857,7 @@
             document.getElementById('pdf-report-modal').classList.add('hidden');
         }
 
-       function downloadPDF() {
+function downloadPDF() {
             const element = document.getElementById('report-content-printable');
             
             if (!element) {
@@ -865,6 +865,7 @@
                 return;
             }
 
+            // Opciones optimizadas para clonar e imprimir correctamente
             const opt = {
                 margin:       10,
                 filename:     `NutriScan_Reporte_${new Date().toISOString().split('T')[0]}.pdf`,
@@ -873,18 +874,16 @@
                     scale: 2, 
                     useCORS: true,
                     logging: false,
-                    letterRendering: true,
-                    windowWidth: 700
+                    letterRendering: true
                 },
                 jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
             };
 
-            setTimeout(() => {
-                html2pdf().from(element).set(opt).save().catch(err => {
-                    console.error("Error al generar PDF:", err);
-                    alert("Hubo un error al generar el PDF.");
-                });
-            }, 400);
+            // Usamos html2pdf con el elemento clonado para evitar problemas con modales ocultos
+            html2pdf().from(element.cloneNode(true)).set(opt).save().catch(err => {
+                console.error("Error al generar PDF:", err);
+                alert("Hubo un error al generar el PDF.");
+            });
         }
     </script>
     <!-- MODAL DE REPORTE PDF (Pégalo aquí, afuera del script) -->
