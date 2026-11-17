@@ -859,15 +859,31 @@
 
         function downloadPDF() {
             const element = document.getElementById('report-content-printable');
+            
+            if (!element) {
+                alert("No se encontró el contenido del reporte.");
+                return;
+            }
+
             const opt = {
                 margin:       10,
                 filename:     `NutriScan_Reporte_${new Date().toISOString().split('T')[0]}.pdf`,
                 image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 2, useCORS: true },
+                html2canvas:  { 
+                    scale: 2, 
+                    useCORS: true,
+                    logging: true,
+                    letterRendering: true
+                },
                 jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
             };
 
-            html2pdf().from(element).set(opt).save();
+            setTimeout(() => {
+                html2pdf().from(element).set(opt).save().catch(err => {
+                    console.error("Error al generar PDF:", err);
+                    alert("Hubo un error al generar el PDF.");
+                });
+            }, 300);
         }
     </script>
     <!-- MODAL DE REPORTE PDF (Pégalo aquí, afuera del script) -->
