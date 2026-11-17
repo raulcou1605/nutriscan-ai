@@ -709,6 +709,166 @@
             if (!item) return;
             renderAnalysis(item, null);
         }
+        let lastAnalyzedProduct = null;
+
+        const originalRenderAnalysis = renderAnalysis;
+        renderAnalysis = function(a, imgSrc) {
+            originalRenderAnalysis(a, imgSrc);
+            lastAnalyzedProduct = a;
+            
+            const logContainer = document.getElementById('log-action-container');
+            if (window.isUserPro) {
+                logContainer.classList.remove('hidden');
+            } else {
+                logContainer.classList.add('hidden');
+            }
+        };
+
+        const originalShowApp = showApp;
+        showApp = async function() {
+            await originalShowApp();
+            if (window.isUserPro) {
+                loadDailyLog();
+            }
+        };
+
+        async function addToDailyLog() {
+            if (!currentUser || !lastAnalyzedProduct) return;
+
+            const { error } = await supabaseClient.from('daily_log').insert({
+                user_id: currentUser.id,
+                product_name: lastAnalyzedProduct.product_name || lastAnalyzedProduct.name,
+                category: lastAnalyzedProduct.category,
+                score: lastAnalyzedProduct.score,
+                seals: lastAnalyzedProduct.seals || []
+            });
+
+            if (error) {
+                alert("Error al agregar al diario: " + error.message);
+            } else {
+                alert("¡Producto agregado a tu consumo de hoy!");
+                loadDailyLog();
+            }
+        }
+
+        async function loadDailyLog() {
+            if (!currentUser || !window.isUserPro) return;
+
+            const section = document.getElementById('daily-log-section');
+            const listEl = document.getElementById('daily-items-list');
+            section.classList.remove('hidden');
+
+            const { data, error } = await supabaseClient
+                .from('daily_log')
+                .select('*')
+                .eq('user_id', currentUser.id)
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                console.error("Error cargando diario:", error);
+                return;
+            }
+
+            if (!data || data.length === 0) {
+                listEl.innerHTML = `<p class="text-slate-400 text-center py-2">No tienes alimentos registrados en tu consumo de hoy.</p>`;
+                return;
+            }
+
+            listEl.innerHTML = data.map(item => `
+                <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-100 flex justify-between items-center">
+                    <div>
+                        <span class="font-bold text-slate-800">${item.product_name}</span>
+                        <p class="text-[10px] text-slate-400">Puntuación: ${item.score}/100</p>
+                    </div>
+                    <button onclick="removeDailyItem('${item.id}')" class="text-rose-500 hover:text-rose-700 font-bold px-2 py-1 text-xs">
+                        ✕ Quitar
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        async function removeDailyItem(id) {
+            const { error } = await supabaseClient.from('daily_log').delete().eq('id', id);
+            if (!error) {
+                loadDailyLog();
+            } else {
+                alert("No se pudo eliminar el elemento.");
+            }
+        }
+
+        async function resetDailyLog() {
+            if (!confirm("¿Estás seguro de reiniciar tu consumo de hoy? Se borrarán todos los elementos registrados.")) return;
+
+            const { error } = await supabaseClient.from('daily_log').delete().eq('user_id', currentUser.id);
+            if (!error) {
+                loadDailyLog();
+                alert("Diario reiniciado con éxito.");
+            } else {
+                alert("Error al reiniciar el diario.");
+            }
+        }
+
+        async function generateDailyReport() {
+            const session = (await supabaseClient.auth.getSession()).data.session;
+            if (!session) return;
+
+            document.getElementById('loading').classList.remove('hidden');
+
+            try {
+                const response = await fetch('/api/generate-report', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${session.access_token}`
+                    }
+                });
+
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Error al generar reporte');
+
+                document.getElementById('report-date').textContent = `Fecha: ${new Date().toLocaleDateString()}`;
+                
+                const avgBadge = document.getElementById('report-avg-badge');
+                avgBadge.textContent = `${data.averageScore}/100 Promedio`;
+                avgBadge.className = `px-3 py-1.5 rounded-xl text-white font-bold text-sm ${data.averageScore > 70 ? 'bg-emerald-500' : data.averageScore > 40 ? 'bg-amber-500' : 'bg-rose-500'}`;
+
+                document.getElementById('report-diagnosis').textContent = data.aiReport.diagnosis;
+
+                const recsContainer = document.getElementById('report-recommendations');
+                recsContainer.innerHTML = data.aiReport.recommendations.map(r => `
+                    <div class="bg-indigo-50/40 p-2.5 rounded-lg border border-indigo-100">
+                        <strong class="text-indigo-900 block mb-0.5">• ${r.title}</strong>
+                        <span class="text-slate-600">${r.detail}</span>
+                    </div>
+                `).join('');
+
+                const itemsList = document.getElementById('report-items-list');
+                itemsList.innerHTML = data.items.map(i => `<li>• ${i.product_name} (${i.score}/100)</li>`).join('');
+
+                document.getElementById('pdf-report-modal').classList.remove('hidden');
+            } catch (err) {
+                alert("Error: " + err.message);
+            } finally {
+                document.getElementById('loading').classList.add('hidden');
+            }
+        }
+
+        function closeReportModal() {
+            document.getElementById('pdf-report-modal').classList.add('hidden');
+        }
+
+        function downloadPDF() {
+            const element = document.getElementById('report-content-printable');
+            const opt = {
+                margin:       10,
+                filename:     `NutriScan_Reporte_${new Date().toISOString().split('T')[0]}.pdf`,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            html2pdf().from(element).set(opt).save();
+        }
     </script>
     <!-- MODAL DE REPORTE PDF (Pégalo aquí, afuera del script) -->
     <div id="pdf-report-modal" class="fixed inset-0 bg-black/60 hidden items-center justify-center p-4 z-50 overflow-y-auto">
