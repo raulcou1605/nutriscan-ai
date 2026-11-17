@@ -228,6 +228,12 @@
     <h4 class="text-xs font-bold uppercase text-indigo-600">💡 Alternativas más saludables sugeridas:</h4>
     <ul id="alternatives-list" class="text-xs text-slate-600 space-y-1 bg-indigo-50/50 p-3 rounded-xl border border-indigo-100"></ul>
 </div>
+                <!-- Botón para registrar el producto escaneado en el diario (Exclusivo PRO) -->
+                <div id="log-action-container" class="pt-2">
+                    <button onclick="addToDailyLog()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 rounded-xl transition text-xs shadow-md flex items-center justify-center gap-1.5">
+                        ➕ Agregar a mi consumo de hoy (Diario PRO)
+                    </button>
+                </div>
                 <p id="res-summary" class="text-xs text-slate-700 bg-slate-50 p-3 rounded-xl border border-slate-200"></p>
             </div>
 
@@ -244,6 +250,23 @@
                 </div>
             </div>
         </div>
+        <!-- SECCIÓN DE DIARIO DE CONSUMO Y REPORTE (PRO) -->
+<div id="daily-log-section" class="w-full bg-white p-5 rounded-2xl shadow-sm border border-slate-200 mt-4 hidden">
+    <div class="flex justify-between items-center mb-3">
+        <h3 class="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+            🍎 Mi Diario de Consumo de Hoy
+        </h3>
+        <button onclick="resetDailyLog()" class="text-xs text-rose-500 font-semibold hover:underline">Reiniciar Día</button>
+    </div>
+
+    <div id="daily-items-list" class="space-y-2 max-h-48 overflow-y-auto text-xs text-slate-600 mb-4">
+        <!-- Se cargan dinámicamente -->
+    </div>
+
+    <button onclick="generateDailyReport()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 rounded-xl transition text-xs shadow-md flex items-center justify-center gap-1.5">
+        📊 Generar Reporte y Recomendaciones en PDF
+    </button>
+</div>
     </div>
 
     <!-- MODAL DE LÍMITE ALCANZADO / PAGO -->
@@ -687,5 +710,49 @@
             renderAnalysis(item, null);
         }
     </script>
+    <!-- MODAL DE REPORTE PDF (Pégalo aquí, afuera del script) -->
+    <div id="pdf-report-modal" class="fixed inset-0 bg-black/60 hidden items-center justify-center p-4 z-50 overflow-y-auto">
+        <div class="bg-white max-w-lg w-full p-6 rounded-2xl space-y-4 shadow-2xl relative my-8">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="text-base font-bold text-slate-900">📄 Reporte Nutricional Diario</h3>
+                <button onclick="closeReportModal()" class="text-xs text-slate-400 hover:underline">Cerrar</button>
+            </div>
+
+            <div id="report-content-printable" class="space-y-4 text-xs text-slate-700 bg-white p-2">
+                <div class="flex justify-between items-center bg-slate-50 p-3 rounded-xl border">
+                    <div>
+                        <h4 class="font-bold text-slate-800 text-sm">NutriScan AI - Resumen de Consumo</h4>
+                        <p id="report-date" class="text-slate-400 text-[10px]"></p>
+                    </div>
+                    <div id="report-avg-badge" class="px-3 py-1.5 rounded-xl text-white font-bold text-sm"></div>
+                </div>
+
+                <div>
+                    <h4 class="font-bold uppercase text-indigo-600 mb-1">Diagnóstico de la IA:</h4>
+                    <p id="report-diagnosis" class="bg-indigo-50/50 p-3 rounded-xl border border-indigo-100 text-slate-700"></p>
+                </div>
+
+                <div>
+                    <h4 class="font-bold uppercase text-indigo-600 mb-1">Recomendaciones personalizadas:</h4>
+                    <div id="report-recommendations" class="space-y-2"></div>
+                </div>
+
+                <div>
+                    <h4 class="font-bold uppercase text-slate-600 mb-1">Alimentos registrados hoy:</h4>
+                    <ul id="report-items-list" class="space-y-1 bg-slate-50 p-3 rounded-xl border"></ul>
+                </div>
+            </div>
+
+            <div class="flex gap-2 pt-2">
+                <button onclick="downloadPDF()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-xl transition text-xs shadow-md">
+                    📥 Descargar Reporte en PDF
+                </button>
+                <button onclick="closeReportModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold px-4 py-3 rounded-xl transition text-xs">
+                    Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+
 </body>
 </html>
